@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+option go_package = "./gen";
+
+package v1;
+
+message CreateUserRequest {
+  string name = 1;
+  string email = 2;
+  string password = 3;
+  bytes metadata = 4;
+}
+
+message CreateUserResponse {
+  uint64 user_id = 1;
+  uint64 created_at = 2;
+}
+
+message RegisterDeviceRequest {
+  uint64 user_id = 1;
+  bytes public_key = 2;
+  bytes metadata = 3;
+}
+
+message RegisterDeviceResponse {
+    uint64 device_id = 1;
+    uint64 created_at = 2;
+}
+
+// LoginUserRequest initiates the challenge-response authentication flow
+message LoginUserRequest {
+  uint64 user_id = 1;
+  uint64 device_id = 2;
+}
+
+// LoginUserChallenge is sent by the server as a challenge to be signed by the client
+message LoginUserChallenge {
+  uint64 user_id = 1;
+  uint64 device_id = 2;
+  uint64 timestamp = 3;  // current server time in seconds since epoch
+}
+
+// LoginUserSignatureRequest is sent by the client with the signed challenge
+message LoginUserSignatureRequest {
+  uint64 user_id = 1;
+  uint64 device_id = 2;
+  uint64 timestamp = 3;  // timestamp from the challenge payload
+  bytes signature = 4;  // ed25519 signature of the LoginUserChallenge
+}
+
+// LoginUserTokenResponse is sent by the server after signature verification
+message LoginUserTokenResponse {
+  string token = 1;  // PASETO token for subsequent authenticated requests
+}
+
+// TODO: Write Documentation
+service UserService {
+  rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
+
+  rpc RegisterDevice(RegisterDeviceRequest) returns (RegisterDeviceResponse);
+
+  rpc LoginUser(LoginUserRequest) returns (LoginUserChallenge);
+
+  rpc VerifyLoginSignature(LoginUserSignatureRequest) returns (LoginUserTokenResponse);
+}

@@ -1,0 +1,40 @@
+# Binaries
+/bin/
+*.exe
+*.dll
+*.so
+*.so.*
+*.a
+*.o
+
+# Generated files
+/gen/**/*.pb.go
+/gen/**/*_grpc.pb.go
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Dependencies
+vendor/
+
+# Environment
+.env
+.env.local
+
+# Data
+./data/
+*.db
+*.sqlite
+
+# Test artifacts
+coverage.out
+*.prof
+
+# Build artifacts
+dist/
+*.tar.gz
