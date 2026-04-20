@@ -2,6 +2,8 @@ package user_service
 
 import (
 	"context"
+	"fmt"
+	"sync"
 	"time"
 
 	"mandala-workspace/gen"
@@ -14,10 +16,16 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+type challengeEntry struct {
+	bytes []byte
+}
+
 type UserService struct {
 	gen.UnimplementedUserServiceServer
 	db_manager     *db.DBManager
 	paseto_manager *paseto.Manager
+
+	challengeCache sync.Map // key: string "userId:deviceId", value: *challengeEntry
 }
 
 // LoginUser initiates the challenge-response authentication flow.
@@ -46,6 +54,20 @@ func (s *UserService) LoginUser(ctx context.Context, req *gen.LoginUserRequest) 
 		Timestamp: uint64(time.Now().Unix()),
 	}
 
+	challengeBytes, err := marshalChallengeForSignature(challenge)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to marshal challenge: %v", err)
+	}
+
+	cacheKey := fmt.Sprintf("%d:%d", req.UserId, req.DeviceId)
+	entry := &challengeEntry{bytes: challengeBytes}
+	s.challengeCache.Store(cacheKey, entry)
+
+	// delete any cached login challenge after 3 mins
+	time.AfterFunc(3*time.Minute, func() {
+		s.challengeCache.CompareAndDelete(cacheKey, entry)
+	})
+
 	return challenge, nil
 }
 
@@ -65,29 +87,25 @@ func (s *UserService) VerifyLoginSignature(ctx context.Context, req *gen.LoginUs
 		return nil, status.Error(codes.InvalidArgument, "signature cannot be empty")
 	}
 
-	// Step 2: Retrieve the device's public key from the database
+	// Step 2: Retrieve the cached challenge
+	cacheKey := fmt.Sprintf("%d:%d", req.UserId, req.DeviceId)
+	cachedEntry, ok := s.challengeCache.Load(cacheKey)
+	if !ok {
+		return nil, status.Errorf(codes.Unauthenticated, "login challenge expired or not found")
+	}
+	challengeBytes := cachedEntry.(*challengeEntry).bytes
+
+	// Delete challenge to prevent replay attacks
+	s.challengeCache.Delete(cacheKey)
+
+	// Step 3: Retrieve the device's public key from the database
 	// This key will be used to verify the signature
 	publicKey, err := s.db_manager.GetDevicePublicKey(req.UserId, req.DeviceId)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "device not found: %v", err)
 	}
 
-	// Step 3: Reconstruct the original challenge message that was signed
-	// The message format is critical - it must match exactly what was signed on the client side.
-	challenge := &gen.LoginUserChallenge{
-		UserId:    req.UserId,
-		DeviceId:  req.DeviceId,
-		Timestamp: req.Timestamp,
-	}
-
-	// Step 4: Serialize the challenge to bytes for signature verification.
-	// Use deterministic protobuf marshaling so the byte encoding is stable across implementations.
-	challengeBytes, err := marshalChallengeForSignature(challenge)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to marshal challenge: %v", err)
-	}
-
-	// Step 5: Verify the ed25519 signature
+	// Step 4: Verify the ed25519 signature
 	// This ensures the signature was created by the holder of the private key corresponding to the public key stored in the database
 	err = crypto.VerifySignature(publicKey, challengeBytes, req.Signature)
 	if err != nil {

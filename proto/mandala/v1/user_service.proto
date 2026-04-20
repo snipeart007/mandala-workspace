@@ -53,13 +53,19 @@ message LoginUserTokenResponse {
   string token = 1;  // PASETO token for subsequent authenticated requests
 }
 
-// TODO: Write Documentation
+// UserService provides authentication and user management operations.
 service UserService {
+  // CreateUser creates a new user account with the given details.
   rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
 
+  // RegisterDevice registers a new device for an existing user, associating a public key.
   rpc RegisterDevice(RegisterDeviceRequest) returns (RegisterDeviceResponse);
 
+  // LoginUser initiates the challenge-response authentication flow.
+  // It returns a challenge that the client must sign using the device's private key.
   rpc LoginUser(LoginUserRequest) returns (LoginUserChallenge);
 
+  // VerifyLoginSignature verifies the client's signature of the challenge.
+  // If valid, it returns an authentication token for subsequent requests.
   rpc VerifyLoginSignature(LoginUserSignatureRequest) returns (LoginUserTokenResponse);
 }

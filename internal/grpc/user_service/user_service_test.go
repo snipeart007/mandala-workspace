@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 
 	"mandala-workspace/gen"
 	"mandala-workspace/internal/crypto"
@@ -121,10 +120,12 @@ func TestVerifyLoginSignatureIssuesToken(t *testing.T) {
 	server, cleanup := newGRPCServerWithDevice(t, userID, deviceID, publicKey)
 	defer cleanup()
 
-	challenge := &gen.LoginUserChallenge{
-		UserId:    userID,
-		DeviceId:  deviceID,
-		Timestamp: uint64(time.Now().Unix()),
+	challenge, err := server.LoginUser(context.Background(), &gen.LoginUserRequest{
+		UserId:   userID,
+		DeviceId: deviceID,
+	})
+	if err != nil {
+		t.Fatalf("LoginUser returned error: %v", err)
 	}
 
 	challengeBytes, err := proto.MarshalOptions{Deterministic: true}.Marshal(challenge)
@@ -163,10 +164,12 @@ func TestVerifyLoginSignatureInvalidSignature(t *testing.T) {
 	server, cleanup := newGRPCServerWithDevice(t, userID, deviceID, publicKey)
 	defer cleanup()
 
-	challenge := &gen.LoginUserChallenge{
-		UserId:    userID,
-		DeviceId:  deviceID,
-		Timestamp: uint64(time.Now().Unix()),
+	challenge, err := server.LoginUser(context.Background(), &gen.LoginUserRequest{
+		UserId:   userID,
+		DeviceId: deviceID,
+	})
+	if err != nil {
+		t.Fatalf("LoginUser returned error: %v", err)
 	}
 
 	challengeBytes, err := proto.MarshalOptions{Deterministic: true}.Marshal(challenge)
