@@ -37,13 +37,13 @@ func (self *DBManager) GetFolderPath(folderID uint64) (string, error) {
 	return path, nil
 }
 
-func (self *DBManager) CreateFolder(name string, parentID uint64, path string, inheritance bool, metadata []byte) (uint64, uint64, error) {
+func (self *DBManager) CreateFolder(name string, parentID uint64, path string, inheritance bool, retention uint32, metadata []byte) (uint64, uint64, error) {
 	createdAt := uint64(time.Now().Unix())
 	
 	result, err := self.db.Exec(`
-		INSERT INTO folders (name, parent_folder_id, path, inheritance, metadata, created_at)
-		VALUES (?, ?, ?, ?, ?, ?)
-	`, name, parentID, path, inheritance, metadata, createdAt)
+		INSERT INTO folders (name, parent_folder_id, path, inheritance, version_retention, metadata, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?)
+	`, name, parentID, path, inheritance, retention, metadata, createdAt)
 	if err != nil {
 		slog.Error("Failed to insert folder", "error", err, "name", name, "parent_id", parentID)
 		return 0, 0, err
@@ -64,12 +64,12 @@ func (self *DBManager) GetFolder(folderID uint64) (*FolderModel, error) {
 	var parentID sql.NullInt64
 	
 	err := self.db.QueryRow(`
-		SELECT folder_id, name, parent_folder_id, path, inheritance, metadata, created_at
+		SELECT folder_id, name, parent_folder_id, path, inheritance, version_retention, metadata, created_at
 		FROM folders 
 		WHERE folder_id = ? AND deleted_at IS NULL
 	`, folderID).Scan(
 		&folder.FolderID, &folder.Name, &parentID, &folder.Path, 
-		&folder.Inheritance, &folder.Metadata, &folder.CreatedAt,
+		&folder.Inheritance, &folder.VersionRetention, &folder.Metadata, &folder.CreatedAt,
 	)
 	
 	if err != nil {
@@ -83,9 +83,25 @@ func (self *DBManager) GetFolder(folderID uint64) (*FolderModel, error) {
 	return &folder, nil
 }
 
+func (self *DBManager) SetRetentionPolicy(folderID uint64, lastN uint32) error {
+	_, err := self.db.Exec(`
+		UPDATE folders SET version_retention = ? WHERE folder_id = ?
+	`, lastN, folderID)
+	return err
+}
+
+func (self *DBManager) GetVersionRetention(folderID uint64) (uint32, error) {
+	var retention uint32
+	err := self.db.QueryRow("SELECT version_retention FROM folders WHERE folder_id = ?", folderID).Scan(&retention)
+	if err != nil {
+		return 0, err
+	}
+	return retention, nil
+}
+
 func (self *DBManager) ListFolders(parentID uint64) ([]FolderModel, error) {
 	rows, err := self.db.Query(`
-		SELECT folder_id, name, parent_folder_id, path, inheritance, metadata, created_at
+		SELECT folder_id, name, parent_folder_id, path, inheritance, version_retention, metadata, created_at
 		FROM folders 
 		WHERE parent_folder_id = ? AND deleted_at IS NULL
 	`, parentID)
@@ -100,7 +116,7 @@ func (self *DBManager) ListFolders(parentID uint64) ([]FolderModel, error) {
 		var pid sql.NullInt64
 		err := rows.Scan(
 			&folder.FolderID, &folder.Name, &pid, &folder.Path, 
-			&folder.Inheritance, &folder.Metadata, &folder.CreatedAt,
+			&folder.Inheritance, &folder.VersionRetention, &folder.Metadata, &folder.CreatedAt,
 		)
 		if err != nil {
 			return nil, err

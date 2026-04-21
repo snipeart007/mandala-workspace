@@ -99,7 +99,7 @@ func TestFolderService_ListFolder(t *testing.T) {
 	ctx := contextWithUser(userID)
 
 	// Create a folder and file
-	fid, _, _ := mgr.CreateFolder("sub", 1, "1/", true, nil)
+	fid, _, _ := mgr.CreateFolder("sub", 1, "1/", true, 0, nil)
 	// We need a file table entry too
 	mgr.CreateFile("myfile.txt", 1, "1/", "cas/123", "local", nil)
 
@@ -125,8 +125,8 @@ func TestFolderService_MoveFolder(t *testing.T) {
 
 	ctx := contextWithUser(userID)
 
-	f1, _, _ := mgr.CreateFolder("f1", 1, "1/", true, nil)
-	f2, _, _ := mgr.CreateFolder("f2", 1, "1/", true, nil)
+	f1, _, _ := mgr.CreateFolder("f1", 1, "1/", true, 0, nil)
+	f2, _, _ := mgr.CreateFolder("f2", 1, "1/", true, 0, nil)
 
 	// Grant Move on f1 and Create on f2
 	mgr.SetUserPermission(userID, f1, uint64(permission.PermMoveFolder))
@@ -154,7 +154,7 @@ func TestFolderService_DeleteFolder(t *testing.T) {
 
 	ctx := contextWithUser(userID)
 
-	f1, _, _ := mgr.CreateFolder("f1", 1, "1/", true, nil)
+	f1, _, _ := mgr.CreateFolder("f1", 1, "1/", true, 0, nil)
 
 	// Grant Delete on f1
 	mgr.SetUserPermission(userID, f1, uint64(permission.PermDeleteFolder))

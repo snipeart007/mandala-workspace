@@ -16,6 +16,7 @@ func TestFolderOperations(t *testing.T) {
 			parent_folder_id INTEGER,
 			path TEXT NOT NULL,
 			inheritance BOOLEAN DEFAULT 1,
+			version_retention INTEGER DEFAULT 0,
 			metadata BLOB,
 			merkle_root BLOB,
 			created_at INTEGER NOT NULL,
@@ -48,7 +49,7 @@ func TestFolderOperations(t *testing.T) {
 	}
 
 	// 2. Test CreateFolder
-	rootID, _, err := mgr.CreateFolder("root", 0, "", true, nil)
+	rootID, _, err := mgr.CreateFolder("root", 0, "", true, 0, nil)
 	if err != nil {
 		t.Fatalf("failed to create root: %v", err)
 	}
@@ -56,7 +57,7 @@ func TestFolderOperations(t *testing.T) {
 		t.Errorf("expected root ID 1, got %d", rootID)
 	}
 
-	childID, _, err := mgr.CreateFolder("child", rootID, "1/", true, nil)
+	childID, _, err := mgr.CreateFolder("child", rootID, "1/", true, 0, nil)
 	if err != nil {
 		t.Fatalf("failed to create child: %v", err)
 	}
@@ -80,7 +81,7 @@ func TestFolderOperations(t *testing.T) {
 	}
 
 	// 5. Test MoveFolder
-	otherID, _, err := mgr.CreateFolder("other", rootID, "1/", true, nil)
+	otherID, _, err := mgr.CreateFolder("other", rootID, "1/", true, 0, nil)
 	if err != nil {
 		t.Fatalf("failed to create other root child: %v", err)
 	}

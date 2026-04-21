@@ -11,9 +11,10 @@ message Folder {
   uint64 parent_folder_id = 3; // ID of the parent folder (0 for root).
   string path = 4;           // Hierarchical path string (e.g., "1/2/").
   bool inheritance = 5;      // Whether this folder inherits permissions from its parent.
-  bytes metadata = 6;        // Custom metadata associated with the folder.
-  bytes merkle_root = 7;     // Merkle root hash for integrity verification of folder contents.
-  uint64 created_at = 8;     // Unix timestamp (seconds) when the folder was created.
+  uint32 version_retention = 6; // How many versions to keep (0 = all).
+  bytes metadata = 7;        // Custom metadata associated with the folder.
+  bytes merkle_root = 8;     // Merkle root hash for integrity verification of folder contents.
+  uint64 created_at = 9;     // Unix timestamp (seconds) when the folder was created.
 }
 
 // File represents a content-addressable file stored within a folder.
@@ -34,7 +35,8 @@ message CreateFolderRequest {
   string name = 1;           // Name of the new folder.
   uint64 parent_folder_id = 2; // ID of the parent folder.
   bool inheritance = 3;      // Whether the new folder should inherit parent permissions.
-  bytes metadata = 4;        // Optional metadata for the new folder.
+  uint32 version_retention = 4; // How many versions to keep (0 = all).
+  bytes metadata = 5;        // Optional metadata for the new folder.
 }
 
 // CreateFolderResponse returns the newly created folder object.

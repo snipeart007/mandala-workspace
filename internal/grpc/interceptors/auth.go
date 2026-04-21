@@ -68,16 +68,48 @@ func (ai *AuthInterceptor) UnaryServerInterceptor(ctx context.Context, req inter
 		return handler(ctx, req)
 	}
 
+	claims, err := ai.authenticate(ctx, info.FullMethod)
+	if err != nil {
+		return nil, err
+	}
+
+	// Store claims in context for handlers to access
+	ctx = context.WithValue(ctx, TokenClaimsContextKey, claims)
+
+	return handler(ctx, req)
+}
+
+func (ai *AuthInterceptor) StreamServerInterceptor(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+	// Skip authentication for unauthenticated methods
+	if isUnauthenticatedMethod(info.FullMethod) {
+		return handler(srv, ss)
+	}
+
+	claims, err := ai.authenticate(ss.Context(), info.FullMethod)
+	if err != nil {
+		return err
+	}
+
+	// Wrap the stream with the new context containing the claims
+	wrapped := &wrappedStream{
+		ServerStream: ss,
+		ctx:          context.WithValue(ss.Context(), TokenClaimsContextKey, claims),
+	}
+
+	return handler(srv, wrapped)
+}
+
+func (ai *AuthInterceptor) authenticate(ctx context.Context, method string) (paseto.TokenClaims, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
-		slog.Warn("Incoming gRPC request missing metadata", "method", info.FullMethod)
-		return nil, status.Error(codes.Unauthenticated, "missing metadata")
+		slog.Warn("Incoming gRPC request missing metadata", "method", method)
+		return paseto.TokenClaims{}, status.Error(codes.Unauthenticated, "missing metadata")
 	}
 
 	authHeader := md.Get("authorization")
 	if len(authHeader) == 0 {
-		slog.Warn("Incoming gRPC request missing authorization header", "method", info.FullMethod)
-		return nil, status.Error(codes.Unauthenticated, "missing authorization token")
+		slog.Warn("Incoming gRPC request missing authorization header", "method", method)
+		return paseto.TokenClaims{}, status.Error(codes.Unauthenticated, "missing authorization token")
 	}
 
 	token := strings.TrimPrefix(authHeader[0], "Bearer ")
@@ -88,20 +120,26 @@ func (ai *AuthInterceptor) UnaryServerInterceptor(ctx context.Context, req inter
 
 	claims, err := ai.pasetoManager.VerifyToken(token)
 	if err != nil {
-		slog.Warn("PASETO token verification failed", "method", info.FullMethod, "error", err)
-		return nil, status.Errorf(codes.Unauthenticated, "invalid token: %v", err)
+		slog.Warn("PASETO token verification failed", "method", method, "error", err)
+		return paseto.TokenClaims{}, status.Errorf(codes.Unauthenticated, "invalid token: %v", err)
 	}
 
 	// Check if the session is active in the cache
 	if !ai.sessionManager.IsSessionActive(claims.UserID, claims.DeviceID) {
-		slog.Warn("Session expired or revoked", "method", info.FullMethod, "user_id", claims.UserID, "device_id", claims.DeviceID)
-		return nil, status.Error(codes.Unauthenticated, "session expired or revoked")
+		slog.Warn("Session expired or revoked", "method", method, "user_id", claims.UserID, "device_id", claims.DeviceID)
+		return paseto.TokenClaims{}, status.Error(codes.Unauthenticated, "session expired or revoked")
 	}
 
-	// Store claims in context for handlers to access
-	ctx = context.WithValue(ctx, TokenClaimsContextKey, claims)
+	return claims, nil
+}
 
-	return handler(ctx, req)
+type wrappedStream struct {
+	grpc.ServerStream
+	ctx context.Context
+}
+
+func (w *wrappedStream) Context() context.Context {
+	return w.ctx
 }
 
 // GetTokenClaims extracts the token claims from the context

@@ -131,7 +131,7 @@ func TestGetUserEffectivePermissions(t *testing.T) {
 	// 1. Setup tables
 	_, err := mgr.db.Exec(`
 		CREATE TABLE users (user_id INTEGER PRIMARY KEY, name TEXT, email TEXT, password_hash BLOB, created_at INTEGER);
-		CREATE TABLE folders (folder_id INTEGER PRIMARY KEY, name TEXT, parent_folder_id INTEGER, path TEXT, inheritance BOOLEAN, created_at INTEGER, deleted_at INTEGER);
+		CREATE TABLE folders (folder_id INTEGER PRIMARY KEY, name TEXT, parent_folder_id INTEGER, path TEXT, inheritance BOOLEAN, version_retention INTEGER DEFAULT 0, created_at INTEGER, deleted_at INTEGER);
 		CREATE TABLE permissions (user_id INTEGER NOT NULL, folder_id INTEGER NOT NULL, permissions INTEGER NOT NULL, UNIQUE(user_id, folder_id));
 	`)
 	if err != nil {

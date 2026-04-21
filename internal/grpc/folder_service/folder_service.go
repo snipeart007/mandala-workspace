@@ -49,36 +49,36 @@ func (s *FolderService) CreateFolder(ctx context.Context, req *v1.CreateFolderRe
 
 	// 3. Compute new path
 	newPath := fmt.Sprintf("%s%d/", parentFolder.Path, parentFolder.FolderID)
+// 4. Create folder
+id, createdAt, err := s.dbManager.CreateFolder(req.Name, req.ParentFolderId, newPath, req.Inheritance, req.VersionRetention, req.Metadata)
+if err != nil {
+	return nil, status.Errorf(codes.Internal, "failed to create folder: %v", err)
+}
 
-	// 4. Create folder
-	id, createdAt, err := s.dbManager.CreateFolder(req.Name, req.ParentFolderId, newPath, req.Inheritance, req.Metadata)
+// 5. If inheritance is broken, copy creator's effective permissions from parent
+if !req.Inheritance {
+	effPerm, err := s.dbManager.GetUserEffectivePermissions(claims.UserID, req.ParentFolderId)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to create folder: %v", err)
+		return nil, status.Errorf(codes.Internal, "failed to fetch effective permissions: %v", err)
 	}
-
-	// 5. If inheritance is broken, copy creator's effective permissions from parent
-	if !req.Inheritance {
-		effPerm, err := s.dbManager.GetUserEffectivePermissions(claims.UserID, req.ParentFolderId)
-		if err != nil {
-			return nil, status.Errorf(codes.Internal, "failed to fetch effective permissions: %v", err)
-		}
-		err = s.dbManager.SetUserPermission(claims.UserID, id, effPerm)
-		if err != nil {
-			return nil, status.Errorf(codes.Internal, "failed to set explicit permissions: %v", err)
-		}
+	err = s.dbManager.SetUserPermission(claims.UserID, id, effPerm)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to set explicit permissions: %v", err)
 	}
+}
 
-	return &v1.CreateFolderResponse{
-		Folder: &v1.Folder{
-			FolderId:       id,
-			Name:           req.Name,
-			ParentFolderId: req.ParentFolderId,
-			Path:           newPath,
-			Inheritance:    req.Inheritance,
-			Metadata:       req.Metadata,
-			CreatedAt:      createdAt,
-		},
-	}, nil
+return &v1.CreateFolderResponse{
+	Folder: &v1.Folder{
+		FolderId:         id,
+		Name:             req.Name,
+		ParentFolderId:   req.ParentFolderId,
+		Path:             newPath,
+		Inheritance:      req.Inheritance,
+		VersionRetention: req.VersionRetention,
+		Metadata:         req.Metadata,
+		CreatedAt:        createdAt,
+	},
+}, nil
 }
 
 func (s *FolderService) ListFolder(ctx context.Context, req *v1.ListFolderRequest) (*v1.ListFolderResponse, error) {
@@ -117,14 +117,15 @@ func (s *FolderService) ListFolder(ctx context.Context, req *v1.ListFolderReques
 	respFolders := make([]*v1.Folder, len(dbFolders))
 	for i, f := range dbFolders {
 		respFolders[i] = &v1.Folder{
-			FolderId:       f.FolderID,
-			Name:           f.Name,
-			ParentFolderId: f.ParentFolderID,
-			Path:           f.Path,
-			Inheritance:    f.Inheritance,
-			Metadata:       f.Metadata,
-			MerkleRoot:     f.MerkleRoot,
-			CreatedAt:      f.CreatedAt,
+			FolderId:         f.FolderID,
+			Name:             f.Name,
+			ParentFolderId:   f.ParentFolderID,
+			Path:             f.Path,
+			Inheritance:      f.Inheritance,
+			VersionRetention: f.VersionRetention,
+			Metadata:         f.Metadata,
+			MerkleRoot:       f.MerkleRoot,
+			CreatedAt:        f.CreatedAt,
 		}
 	}
 

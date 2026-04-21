@@ -44,16 +44,32 @@ Implement a gRPC-based workspace service that supports hierarchical folder manag
    - Integrated `PermissionManager` for granular access control (`PermCreateFolder`, `PermRead`, `PermMoveFolder`, `PermDeleteFolder`).
    - Implemented inheritance break handling in `CreateFolder`: if `inheritance=false`, creator's effective permissions from the parent are explicitly assigned to the new folder.
 
-### Phase 4: File & Versioning (CAS-Integrated)
-1. **Define `FileService` in `file_service.proto`**:
-   - `UploadFile`, `DownloadFile`, `GetFileHistory`, `DeleteFile`.
-2. **Implement `FileService` in `internal/grpc/file_service/`**:
-   - `UploadFile`:
-     - Checks `PermWrite` or `PermCreate`.
-     - Uses `CASRegistry` to store content.
-     - Creates/Updates `files` and `versions` table entries.
-   - `DownloadFile`: Checks `PermRead`, retrieves `location` and `hash`, and fetches content via `CASRegistry`.
-   - `GetFileHistory`: Returns all versions associated with a file ID.
+### Phase 4: Streaming File Service & Automated Versioning
+**Goal:** Implement a memory-efficient, streaming-based file service with automated history and retention.
+
+1.  **Sub-Phase 1: Foundation & Schema Updates**
+    - Define `proto/mandala/v1/file_service.proto` with streaming RPCs (`UploadFile` client-stream, `DownloadFile` server-stream).
+    - Update `internal/db/sql/InitializeDB.sql` to add `version_retention` (INT, default 0) to the `folders` table.
+    - Expand `internal/db` models to support fetching folder retention and managing `versions` records.
+
+2.  **Sub-Phase 2: Streaming File Service Implementation**
+    - Implement `UploadFile` gRPC handler to pipe the incoming request stream directly into `CASProvider.Store`.
+    - Implement `DownloadFile` to pipe `io.ReadCloser` from `CASProvider.Retrieve` directly into the gRPC response stream.
+    - Ensure all data movement uses `io.Copy` or buffered readers (e.g., 32KB chunks) to maintain constant memory overhead regardless of file size.
+
+3.  **Sub-Phase 3: Automated Versioning & Metadata**
+    - Implement atomic "Upsert" logic: if a filename exists in a folder, create a new `versions` entry and update the `files.version_id` pointer.
+    - Implement `ListVersions` RPC to query file history (timestamps, hashes, authors).
+
+4.  **Sub-Phase 4: Retention Policy Enforcement**
+    - Add `SetRetentionPolicy` RPC to update the `version_retention` limit on a folder.
+    - Implement post-upload "Pruning" logic: if versions > `N` (where `N > 0`), delete the oldest `versions` records from the database.
+    - Note: Physical storage deletion remains a background GC task to ensure CAS integrity.
+
+5.  **Sub-Phase 5: Integration & Stress Testing**
+    - Validate with 2GB+ files to ensure stable memory usage (monitored via `pprof`).
+    - Verify strict enforcement of the "N" limit after successive uploads.
+    - Test recovery from interrupted streams (network disconnects) to prevent partial/corrupt version state.
 
 ### Phase 5: Merkle Tree Integration (Advanced)
 1. **Implement `UpdateFolderMerkleRoot(folderID uint64)`**:

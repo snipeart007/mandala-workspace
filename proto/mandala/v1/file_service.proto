@@ -1,0 +1,117 @@
+syntax = "proto3";
+
+option go_package = "./gen";
+
+package v1;
+
+import "proto/mandala/v1/folder_service.proto";
+
+// --- Requests for Creating/Updating Content ---
+
+message UploadFileRequest {
+  oneof data {
+    UploadMetadata metadata = 1;
+    bytes chunk = 2;
+  }
+}
+
+message UploadMetadata {
+  string name = 1;
+  uint64 folder_id = 2;
+  bytes metadata = 3; // Optional custom metadata
+}
+
+message UploadVersionRequest {
+  oneof data {
+    VersionMetadata metadata = 1;
+    bytes chunk = 2;
+  }
+}
+
+message VersionMetadata {
+  uint64 file_id = 1;
+  string comment = 2;
+  bytes metadata = 3; // Optional version-specific metadata
+}
+
+message FileResponse {
+  File file = 1;
+  uint64 version_id = 2;
+}
+
+// --- Requests for Metadata & Management ---
+
+message ModifyFileRequest {
+  uint64 file_id = 1;
+  optional string name = 2;      // New name if renaming
+  optional uint64 folder_id = 3; // New folder if moving
+  bytes metadata = 4;            // Update custom metadata
+}
+
+message DownloadFileRequest {
+  uint64 file_id = 1;
+  uint64 version_id = 2; // If 0, downloads the latest version.
+}
+
+message DownloadFileResponse {
+  bytes chunk = 1;
+}
+
+message ListVersionsRequest {
+  uint64 file_id = 1;
+}
+
+message ListVersionsResponse {
+  repeated FileVersion versions = 1;
+}
+
+message FileVersion {
+  uint64 version_id = 1;
+  uint64 file_id = 2;
+  string version_name = 3;
+  bytes hash = 4;
+  uint64 user_id = 5;
+  bytes metadata = 6;
+  string comment = 7;
+  uint64 created_at = 8;
+}
+
+message SetRetentionPolicyRequest {
+  uint64 folder_id = 1;
+  uint32 last_n_versions = 2;
+}
+
+message SetRetentionPolicyResponse {
+  bool success = 1;
+}
+
+message DeleteFileRequest {
+  uint64 file_id = 1;
+}
+
+message DeleteFileResponse {
+  bool success = 1;
+}
+
+service FileService {
+  // UploadFile creates a NEW file record and uploads its initial content.
+  rpc UploadFile(stream UploadFileRequest) returns (FileResponse);
+
+  // UploadVersion adds a new content version to an EXISTING file.
+  rpc UploadVersion(stream UploadVersionRequest) returns (FileResponse);
+
+  // ModifyFile updates file metadata (rename, move, or metadata update) without changing content.
+  rpc ModifyFile(ModifyFileRequest) returns (FileResponse);
+
+  // DownloadFile retrieves file content.
+  rpc DownloadFile(DownloadFileRequest) returns (stream DownloadFileResponse);
+
+  // ListVersions retrieves the history of a specific file.
+  rpc ListVersions(ListVersionsRequest) returns (ListVersionsResponse);
+
+  // SetRetentionPolicy updates the number of versions kept for a folder.
+  rpc SetRetentionPolicy(SetRetentionPolicyRequest) returns (SetRetentionPolicyResponse);
+
+  // DeleteFile soft-deletes a file and all its versions.
+  rpc DeleteFile(DeleteFileRequest) returns (DeleteFileResponse);
+}
