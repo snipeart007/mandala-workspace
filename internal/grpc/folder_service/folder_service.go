@@ -1,4 +1,4 @@
-package workspace_service
+package folder_service
 
 import (
 	"context"

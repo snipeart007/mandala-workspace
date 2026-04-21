@@ -33,21 +33,21 @@ Implement a gRPC-based workspace service that supports hierarchical folder manag
    - Ensured all permission checks respect the `deleted_at IS NULL` soft-delete state.
 
 ### Phase 3: Folder Management (Completed)
-1. **Define `workspace_service.proto`**:
+1. **Define `folder_service.proto`**:
    - Defined `FolderService` with RPCs: `CreateFolder`, `ListFolder`, `MoveFolder`, `DeleteFolder`.
 2. **Implement Database Operations in `internal/db/db.go`**:
    - **Soft-Delete**: All operations now include `deleted_at IS NULL` checks. `SoftDeleteFolder` recursively marks folders and files as deleted.
    - **Path Management**: `CreateFolder` computes hierarchical `path` strings; `MoveFolder` recursively updates path prefixes for all descendants.
    - **Data Models**: Added `FolderModel` and `FileModel` in `internal/db/models.go`.
    - **Helper Methods**: Added `ListFolders`, `ListFiles`, and `CreateFile` to facilitate workspace management and testing.
-3. **Implement `FolderService` in `internal/grpc/workspace_service/`**:
+3. **Implement `FolderService` in `internal/grpc/folder_service/`**:
    - Integrated `PermissionManager` for granular access control (`PermCreateFolder`, `PermRead`, `PermMoveFolder`, `PermDeleteFolder`).
    - Implemented inheritance break handling in `CreateFolder`: if `inheritance=false`, creator's effective permissions from the parent are explicitly assigned to the new folder.
 
 ### Phase 4: File & Versioning (CAS-Integrated)
-1. **Define `FileService` in `workspace_service.proto`**:
+1. **Define `FileService` in `file_service.proto`**:
    - `UploadFile`, `DownloadFile`, `GetFileHistory`, `DeleteFile`.
-2. **Implement `FileService`**:
+2. **Implement `FileService` in `internal/grpc/file_service/`**:
    - `UploadFile`:
      - Checks `PermWrite` or `PermCreate`.
      - Uses `CASRegistry` to store content.
@@ -74,3 +74,5 @@ Implement a gRPC-based workspace service that supports hierarchical folder manag
    - `FolderOperations` in DB (Move, Delete, Create).
 2. **Integration Tests**:
    - `FolderService` gRPC implementation with end-to-end permission checks and authenticated contexts.
+   - `FileService` gRPC implementation (Phase 4).
+
