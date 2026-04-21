@@ -1,12 +1,15 @@
+// Package db provides permission-related database operations including bitmask retrieval and effective permission calculation.
 package db
 
 import (
 	"database/sql"
 	"fmt"
+	"log/slog"
 	"strings"
 )
 
 func (self *DBManager) GetUserPermissionBitmask(userID uint64, folderID uint64) (uint64, error) {
+	slog.Debug("Getting user permission bitmask", "user_id", userID, "folder_id", folderID)
 	var permissions uint64
 	err := self.db.QueryRow(
 		"SELECT permissions FROM permissions WHERE user_id = ? AND folder_id = ?",
@@ -15,8 +18,10 @@ func (self *DBManager) GetUserPermissionBitmask(userID uint64, folderID uint64) 
 	
 	if err != nil {
 		if err == sql.ErrNoRows {
+			slog.Debug("No explicit permissions found", "user_id", userID, "folder_id", folderID)
 			return 0, nil
 		}
+		slog.Error("Failed to get user permission bitmask", "user_id", userID, "folder_id", folderID, "error", err)
 		return 0, err
 	}
 	
@@ -25,11 +30,13 @@ func (self *DBManager) GetUserPermissionBitmask(userID uint64, folderID uint64) 
 
 // GetUserEffectivePermissions implements path-based prefix search with inheritance break logic.
 func (self *DBManager) GetUserEffectivePermissions(userID uint64, folderID uint64) (uint64, error) {
+	slog.Debug("Calculating effective permissions", "user_id", userID, "folder_id", folderID)
 	// 1. Get the target folder's path and inheritance bit
 	var path string
 	var inheritance bool
 	err := self.db.QueryRow("SELECT path, inheritance FROM folders WHERE folder_id = ?", folderID).Scan(&path, &inheritance)
 	if err != nil {
+		slog.Error("Failed to fetch folder path for effective permissions", "folder_id", folderID, "error", err)
 		return 0, fmt.Errorf("failed to fetch folder path: %w", err)
 	}
 
@@ -56,6 +63,7 @@ func (self *DBManager) GetUserEffectivePermissions(userID uint64, folderID uint6
 	inheritanceMap := make(map[uint64]bool)
 	rows, err := self.db.Query(fmt.Sprintf("SELECT folder_id, inheritance FROM folders WHERE folder_id IN (%s) AND deleted_at IS NULL", placeholders), folderIDs...)
 	if err != nil {
+		slog.Error("Failed to fetch inheritance chain", "error", err)
 		return 0, fmt.Errorf("failed to fetch inheritance chain: %w", err)
 	}
 	count := 0
@@ -69,6 +77,7 @@ func (self *DBManager) GetUserEffectivePermissions(userID uint64, folderID uint6
 	rows.Close()
 
 	if count < len(folderIDs) {
+		slog.Warn("Some folders in the chain are deleted or not found", "found", count, "expected", len(folderIDs))
 		return 0, fmt.Errorf("folder or its ancestors are deleted or not found (count=%d, expected=%d)", count, len(folderIDs))
 	}
 
@@ -76,12 +85,14 @@ func (self *DBManager) GetUserEffectivePermissions(userID uint64, folderID uint6
 	permissionMap := make(map[uint64]uint64)
 	rows, err = self.db.Query(fmt.Sprintf("SELECT folder_id, permissions FROM permissions WHERE user_id = ? AND folder_id IN (%s)", placeholders), append([]interface{}{userID}, folderIDs...)...)
 	if err != nil {
+		slog.Error("Failed to fetch permissions chain", "user_id", userID, "error", err)
 		return 0, fmt.Errorf("failed to fetch permissions chain: %w", err)
 	}
 	for rows.Next() {
 		var id uint64
 		var perm uint64
 		if err := rows.Scan(&id, &perm); err != nil {
+			slog.Error("Failed to scan permission row in chain", "error", err)
 			return 0, fmt.Errorf("failed to scan permission row: %w", err)
 		}
 		permissionMap[id] = perm
@@ -112,6 +123,7 @@ func (self *DBManager) GetUserEffectivePermissions(userID uint64, folderID uint6
 		// If this folder breaks inheritance, clear all previous aggregated permissions
 		// UNLESS we have Admin bypass (simplified: we keep Admin bit if set)
 		if !inheritanceMap[id] && i > 0 {
+			slog.Debug("Inheritance break detected", "folder_id", id)
 			hasAdmin := (effectivePerm & PermAdmin) != 0
 			effectivePerm = 0
 			if hasAdmin {
@@ -122,14 +134,19 @@ func (self *DBManager) GetUserEffectivePermissions(userID uint64, folderID uint6
 		effectivePerm |= perm
 	}
 
+	slog.Debug("Effective permissions calculated", "user_id", userID, "folder_id", folderID, "permissions", effectivePerm)
 	return effectivePerm, nil
 }
 
 func (self *DBManager) SetUserPermission(userID uint64, folderID uint64, permissions uint64) error {
+	slog.Info("Setting user permission", "user_id", userID, "folder_id", folderID, "permissions", permissions)
 	_, err := self.db.Exec(`
 		INSERT INTO permissions (user_id, folder_id, permissions)
 		VALUES (?, ?, ?)
 		ON CONFLICT(user_id, folder_id) DO UPDATE SET permissions = excluded.permissions
 	`, userID, folderID, permissions)
+	if err != nil {
+		slog.Error("Failed to set user permission", "user_id", userID, "folder_id", folderID, "error", err)
+	}
 	return err
 }

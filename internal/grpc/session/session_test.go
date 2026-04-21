@@ -1,3 +1,5 @@
+// Package session contains tests for the session manager, which tracks active user sessions.
+// It ensures that sessions can be added, checked for activity, and removed correctly.
 package session
 
 import (

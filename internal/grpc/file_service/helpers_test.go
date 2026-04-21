@@ -1,3 +1,5 @@
+// Package file_service provides helper functions and mock implementations for testing the file service.
+// These utilities simplify the creation of test environments and mock gRPC streams.
 package file_service
 
 import (

@@ -1,3 +1,4 @@
+// Package folder_service implements the folder listing logic.
 package folder_service
 
 import (
@@ -13,6 +14,7 @@ import (
 )
 
 func (s *FolderService) ListFolder(ctx context.Context, req *v1.ListFolderRequest) (*v1.ListFolderResponse, error) {
+	slog.Info("ListFolder RPC entry", "folder_id", req.FolderId)
 	claims, err := interceptors.GetTokenClaims(ctx)
 	if err != nil {
 		slog.Warn("ListFolder attempt without token claims")

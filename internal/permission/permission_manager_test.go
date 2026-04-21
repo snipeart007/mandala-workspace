@@ -1,3 +1,5 @@
+// Package permission contains tests for the permission manager and bitmask-based access control.
+// It verifies that permissions are correctly checked and inherited through the folder hierarchy.
 package permission
 
 import (

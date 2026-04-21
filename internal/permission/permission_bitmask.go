@@ -1,3 +1,5 @@
+// Package permission defines the permission system for the workspace, using bitmasks for efficient access control.
+// This file specifically implements the PermissionBitMask type and its associated constants and helper methods.
 package permission
 
 import "fmt"

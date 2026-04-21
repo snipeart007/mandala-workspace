@@ -1,3 +1,5 @@
+// Package ed25519 contains tests for the Ed25519 cryptographic primitives used for device authentication.
+// It verifies key pair generation, message signing, and signature verification.
 package ed25519
 
 import (

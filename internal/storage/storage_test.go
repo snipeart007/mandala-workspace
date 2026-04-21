@@ -1,3 +1,5 @@
+// Package storage contains unit tests for the local storage implementation of the CAS (Content Addressable Storage) system.
+// It verifies basic storage operations like storing, retrieving, and deleting content by its hash.
 package storage
 
 import (

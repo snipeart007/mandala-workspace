@@ -1,3 +1,5 @@
+// Package folder_service contains tests for folder management operations like creation, listing, moving, and deletion.
+// It ensures that folder operations respect permissions and correctly update the database hierarchy.
 package folder_service
 
 import (

@@ -1,3 +1,5 @@
+// Package interceptors contains tests for the gRPC authentication interceptors.
+// It verifies that tokens are correctly validated and that unauthorized requests are appropriately rejected.
 package interceptors
 
 import (

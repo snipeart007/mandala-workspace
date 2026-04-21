@@ -1,3 +1,5 @@
+// Package user_service contains tests for the user login and authentication flow.
+// It verifies the challenge-response mechanism and the issuance of authentication tokens.
 package user_service
 
 import (

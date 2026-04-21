@@ -1,3 +1,5 @@
+// Package user_service contains tests for user lifecycle management within the user service.
+// It verifies user creation processes, including permission checks and data persistence.
 package user_service
 
 import (

@@ -1,4 +1,7 @@
+// Package argon2 provides secure password hashing using the Argon2id algorithm.
+// It implements the PHC string format for storing and verifying hashes.
 package argon2
+
 import (
 	"crypto/rand"
 	"crypto/subtle"
@@ -36,6 +39,7 @@ func HashPassword(password string) (string, error) {
 	b64Hash := base64.RawStdEncoding.EncodeToString(hash)
 
 	encoded := fmt.Sprintf("$argon2id$v=%d$m=%d,t=%d,p=%d$%s$%s", argon2.Version, memory, time, threads, b64Salt, b64Hash)
+	slog.Debug("Password hashed successfully using argon2id")
 	return encoded, nil
 }
 
@@ -82,5 +86,11 @@ func VerifyPassword(password, encodedHash string) (bool, error) {
 
 	comparisonHash := argon2.IDKey([]byte(password), salt, t, m, uint8(p), uint32(len(hash)))
 
-	return subtle.ConstantTimeCompare(hash, comparisonHash) == 1, nil
+	match := subtle.ConstantTimeCompare(hash, comparisonHash) == 1
+	if !match {
+		slog.Debug("Password verification failed")
+	} else {
+		slog.Debug("Password verification successful")
+	}
+	return match, nil
 }

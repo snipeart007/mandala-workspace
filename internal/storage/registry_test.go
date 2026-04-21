@@ -1,3 +1,5 @@
+// Package storage contains tests for the CAS registry and provider management.
+// It ensures that the registry correctly routes storage operations to the appropriate providers based on URIs.
 package storage
 
 import (

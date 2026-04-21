@@ -1,3 +1,5 @@
+// Package paseto contains tests for the PASETO (Platform-Agnostic Security Tokens) token management.
+// It verifies the creation and validation of stateless session tokens.
 package paseto
 
 import (

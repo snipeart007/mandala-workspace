@@ -1,3 +1,5 @@
+// Package db provides models and database access for the Mandala project.
+// This file defines the core database models used throughout the application.
 package db
 
 type FolderModel struct {

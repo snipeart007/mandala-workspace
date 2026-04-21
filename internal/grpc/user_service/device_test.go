@@ -1,3 +1,5 @@
+// Package user_service contains tests for device registration and management within the user service.
+// These tests ensure that devices can be correctly registered, revoked, and permissions are enforced.
 package user_service
 
 import (

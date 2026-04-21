@@ -1,3 +1,4 @@
+// Package folder_service implements folder management operations such as moving and deleting folders.
 package folder_service
 
 import (
@@ -14,6 +15,7 @@ import (
 )
 
 func (s *FolderService) MoveFolder(ctx context.Context, req *v1.MoveFolderRequest) (*v1.MoveFolderResponse, error) {
+	slog.Info("MoveFolder RPC entry", "folder_id", req.FolderId, "new_parent_id", req.NewParentFolderId)
 	claims, err := interceptors.GetTokenClaims(ctx)
 	if err != nil {
 		slog.Warn("MoveFolder attempt without token claims")
@@ -64,6 +66,7 @@ func (s *FolderService) MoveFolder(ctx context.Context, req *v1.MoveFolderReques
 }
 
 func (s *FolderService) DeleteFolder(ctx context.Context, req *v1.DeleteFolderRequest) (*v1.DeleteFolderResponse, error) {
+	slog.Info("DeleteFolder RPC entry", "folder_id", req.FolderId)
 	claims, err := interceptors.GetTokenClaims(ctx)
 	if err != nil {
 		slog.Warn("DeleteFolder attempt without token claims")

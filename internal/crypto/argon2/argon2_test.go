@@ -1,3 +1,5 @@
+// Package argon2 contains tests for the Argon2id password hashing implementation.
+// It ensures that passwords can be securely hashed and subsequently verified against their hashes.
 package argon2
 
 import (

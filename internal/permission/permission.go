@@ -1,3 +1,5 @@
+// Package permission defines the permission system for the workspace, using bitmasks for efficient access control.
+// This file defines the Permission struct and methods for generating permissions from a hierarchy.
 package permission
 
 

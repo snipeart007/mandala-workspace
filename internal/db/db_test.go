@@ -1,3 +1,5 @@
+// Package db contains unit tests for the core DBManager functionality, including database setup and schema initialization.
+// It also tests low-level operations like retrieving device public keys and calculating effective permissions.
 package db
 
 import (

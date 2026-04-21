@@ -1,3 +1,5 @@
+// Package storage provides the Content-Addressable Storage (CAS) interfaces and implementations.
+// This file implements a local disk-based storage backend for the Mandala project.
 package storage
 
 import (
@@ -16,7 +18,9 @@ type LocalStorage struct {
 }
 
 func NewLocalStorage(rootDir string) (*LocalStorage, error) {
+	slog.Info("Initializing local storage", "root_dir", rootDir)
 	if err := os.MkdirAll(rootDir, 0755); err != nil {
+		slog.Error("Failed to create local storage root", "root_dir", rootDir, "error", err)
 		return nil, fmt.Errorf("failed to create storage root: %w", err)
 	}
 	return &LocalStorage{rootDir: rootDir}, nil
@@ -82,32 +86,36 @@ func (s *LocalStorage) Store(ctx context.Context, r io.Reader) (string, error) {
 }
 
 func (s *LocalStorage) Retrieve(ctx context.Context, hash string) (io.ReadCloser, error) {
+	slog.Debug("Retrieving content from local storage", "hash", hash)
 	_, path := s.getPath(hash)
 
 	file, err := os.Open(path)
 	if err != nil {
 		if os.IsNotExist(err) {
+			slog.Warn("Content not found in local storage", "hash", hash, "path", path)
 			return nil, ErrNotFound
 		}
+		slog.Error("Failed to open local storage file", "hash", hash, "path", path, "error", err)
 		return nil, fmt.Errorf("failed to open file: %w", err)
 	}
 
-	// Note: For a true production system, we might want to wrap this reader
-	// to verify the hash as it's being read by the client. 
-	// For now, we return the file handle.
 	return file, nil
 }
 
 func (s *LocalStorage) Exists(ctx context.Context, hash string) (bool, error) {
+	slog.Debug("Checking if content exists in local storage", "hash", hash)
 	_, path := s.getPath(hash)
 	_, err := os.Stat(path)
-	return err == nil || !os.IsNotExist(err), nil
+	exists := err == nil || !os.IsNotExist(err)
+	return exists, nil
 }
 
 func (s *LocalStorage) Delete(ctx context.Context, hash string) error {
+	slog.Info("Deleting content from local storage", "hash", hash)
 	_, path := s.getPath(hash)
 	err := os.Remove(path)
 	if err != nil && !os.IsNotExist(err) {
+		slog.Error("Failed to delete local storage file", "hash", hash, "path", path, "error", err)
 		return fmt.Errorf("failed to delete file: %w", err)
 	}
 	return nil

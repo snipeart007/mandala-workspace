@@ -1,3 +1,4 @@
+// Package user_service implements authentication flows for the mandala service.
 package user_service
 
 import (
@@ -16,6 +17,7 @@ import (
 
 // LoginUser initiates the challenge-response authentication flow.
 func (s *UserService) LoginUser(ctx context.Context, req *gen.LoginUserRequest) (*gen.LoginUserChallenge, error) {
+	slog.Info("LoginUser RPC entry", "user_id", req.UserId, "device_id", req.DeviceId)
 	if req.UserId == 0 || req.DeviceId == 0 {
 		slog.Warn("Login attempt with invalid IDs", "user_id", req.UserId, "device_id", req.DeviceId)
 		return nil, status.Error(codes.InvalidArgument, "user_id and device_id must be non-zero")
@@ -53,6 +55,7 @@ func (s *UserService) LoginUser(ctx context.Context, req *gen.LoginUserRequest) 
 
 // VerifyLoginSignature verifies the ed25519 signature and issues a Paseto token.
 func (s *UserService) VerifyLoginSignature(ctx context.Context, req *gen.LoginUserSignatureRequest) (*gen.LoginUserTokenResponse, error) {
+	slog.Info("VerifyLoginSignature RPC entry", "user_id", req.UserId, "device_id", req.DeviceId)
 	if req.UserId == 0 || req.DeviceId == 0 {
 		slog.Warn("Verify signature attempt with invalid IDs", "user_id", req.UserId, "device_id", req.DeviceId)
 		return nil, status.Error(codes.InvalidArgument, "user_id and device_id must be non-zero")

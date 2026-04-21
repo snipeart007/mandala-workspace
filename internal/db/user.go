@@ -1,3 +1,4 @@
+// Package db provides user-related database operations including user creation, device registration, and key retrieval.
 package db
 
 import (
@@ -12,6 +13,7 @@ import (
 // deviceID: the device ID
 // Returns: the public key bytes, or error if device not found or revoked
 func (self *DBManager) GetDevicePublicKey(userID uint64, deviceID uint64) ([]byte, error) {
+	slog.Debug("Fetching device public key", "user_id", userID, "device_id", deviceID)
 	var publicKey []byte
 	
 	err := self.db.QueryRow(
@@ -35,6 +37,7 @@ func (self *DBManager) GetDevicePublicKey(userID uint64, deviceID uint64) ([]byt
 func (self *DBManager) CreateUser(name string, email string, passwordHash []byte, metadata []byte) (uint64, uint64, error) {
 	createdAt := uint64(time.Now().Unix())
 	
+	slog.Info("Creating user", "name", name, "email", email)
 	result, err := self.db.Exec(
 		"INSERT INTO users (name, email, password_hash, metadata, created_at) VALUES (?, ?, ?, ?, ?)",
 		name, email, passwordHash, metadata, createdAt,
@@ -55,9 +58,11 @@ func (self *DBManager) CreateUser(name string, email string, passwordHash []byte
 }
 
 func (self *DBManager) GetUserCount() (int, error) {
+	slog.Debug("Getting user count")
 	var count int
 	err := self.db.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
 	if err != nil {
+		slog.Error("Failed to get user count", "error", err)
 		return 0, err
 	}
 	return count, nil
@@ -66,6 +71,7 @@ func (self *DBManager) GetUserCount() (int, error) {
 func (self *DBManager) RegisterDevice(userID uint64, publicKey []byte, metadata []byte) (uint64, uint64, error) {
 	createdAt := uint64(time.Now().Unix())
 
+	slog.Info("Registering device", "user_id", userID)
 	result, err := self.db.Exec(
 		"INSERT INTO devices (user_id, public_key, metadata, created_at) VALUES (?, ?, ?, ?)",
 		userID, publicKey, metadata, createdAt,
@@ -87,6 +93,7 @@ func (self *DBManager) RegisterDevice(userID uint64, publicKey []byte, metadata 
 
 func (self *DBManager) RevokeDevice(userID uint64, deviceID uint64) error {
 	revokedAt := uint64(time.Now().Unix())
+	slog.Info("Revoking device", "user_id", userID, "device_id", deviceID)
 	_, err := self.db.Exec(
 		"UPDATE devices SET revoked_at = ? WHERE user_id = ? AND device_id = ? AND revoked_at IS NULL",
 		revokedAt, userID, deviceID,

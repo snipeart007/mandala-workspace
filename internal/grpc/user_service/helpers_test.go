@@ -1,3 +1,5 @@
+// Package user_service provides helper functions for unit testing the user service implementation.
+// These helpers facilitate the setup of test gRPC servers with pre-configured database states.
 package user_service
 
 import (

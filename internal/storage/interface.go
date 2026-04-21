@@ -1,3 +1,5 @@
+// Package storage provides the Content-Addressable Storage (CAS) interfaces and implementations.
+// This file defines the core CASProvider interface for multiple storage backends.
 package storage
 
 import (

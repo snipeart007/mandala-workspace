@@ -1,3 +1,5 @@
+// Package file_service contains integration tests for the file service, covering upload, download, and modification.
+// It ensures that the file service correctly interacts with the database and storage layers.
 package file_service
 
 import (

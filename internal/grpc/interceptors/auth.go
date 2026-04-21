@@ -1,3 +1,7 @@
+/*
+Package interceptors provides gRPC middleware for the Mandala workspace services.
+This file implements the authentication interceptor that validates PASETO tokens.
+*/
 package interceptors
 
 import (
@@ -63,8 +67,11 @@ func GetUnauthenticatedMethods() []string {
 }
 
 func (ai *AuthInterceptor) UnaryServerInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	slog.Info("Unary RPC Entry", "method", info.FullMethod)
+
 	// Skip authentication for unauthenticated methods
 	if isUnauthenticatedMethod(info.FullMethod) {
+		slog.Debug("Skipping authentication for method", "method", info.FullMethod)
 		return handler(ctx, req)
 	}
 
@@ -76,12 +83,21 @@ func (ai *AuthInterceptor) UnaryServerInterceptor(ctx context.Context, req inter
 	// Store claims in context for handlers to access
 	ctx = context.WithValue(ctx, TokenClaimsContextKey, claims)
 
-	return handler(ctx, req)
+	resp, err := handler(ctx, req)
+	if err == nil {
+		slog.Info("Unary RPC Success", "method", info.FullMethod)
+	} else {
+		slog.Error("Unary RPC Failure", "method", info.FullMethod, "error", err)
+	}
+	return resp, err
 }
 
 func (ai *AuthInterceptor) StreamServerInterceptor(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+	slog.Info("Stream RPC Entry", "method", info.FullMethod)
+
 	// Skip authentication for unauthenticated methods
 	if isUnauthenticatedMethod(info.FullMethod) {
+		slog.Debug("Skipping authentication for method", "method", info.FullMethod)
 		return handler(srv, ss)
 	}
 
@@ -96,7 +112,13 @@ func (ai *AuthInterceptor) StreamServerInterceptor(srv interface{}, ss grpc.Serv
 		ctx:          context.WithValue(ss.Context(), TokenClaimsContextKey, claims),
 	}
 
-	return handler(srv, wrapped)
+	err = handler(srv, wrapped)
+	if err == nil {
+		slog.Info("Stream RPC Success", "method", info.FullMethod)
+	} else {
+		slog.Error("Stream RPC Failure", "method", info.FullMethod, "error", err)
+	}
+	return err
 }
 
 func (ai *AuthInterceptor) authenticate(ctx context.Context, method string) (paseto.TokenClaims, error) {
@@ -130,6 +152,7 @@ func (ai *AuthInterceptor) authenticate(ctx context.Context, method string) (pas
 		return paseto.TokenClaims{}, status.Error(codes.Unauthenticated, "session expired or revoked")
 	}
 
+	slog.Info("Authentication successful", "method", method, "user_id", claims.UserID)
 	return claims, nil
 }
 

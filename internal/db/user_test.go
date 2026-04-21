@@ -1,3 +1,5 @@
+// Package db contains tests for user-related database operations.
+// It verifies the persistence and retrieval of user and device data in the SQLite database.
 package db
 
 import (

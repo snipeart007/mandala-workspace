@@ -1,3 +1,5 @@
+// Package file_service contains efficiency and performance tests for file streaming operations.
+// These tests monitor memory usage during large file uploads to ensure streaming stays within expected limits.
 package file_service
 
 import (

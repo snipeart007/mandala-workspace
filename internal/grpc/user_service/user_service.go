@@ -1,6 +1,9 @@
+// Package user_service provides the gRPC service implementation for user management,
+// including authentication, device registration, and user creation.
 package user_service
 
 import (
+	"log/slog"
 	"sync"
 
 	"mandala-workspace/gen"
@@ -25,6 +28,7 @@ type UserService struct {
 }
 
 func NewUserService(db_manager *db.DBManager, paseto_manager *paseto.Manager, permission_manager *permission.PermissionManager, session_manager *session.SessionManager) *UserService {
+	slog.Debug("Initializing UserService")
 	return &UserService{
 		db_manager:         db_manager,
 		paseto_manager:     paseto_manager,
