@@ -20,21 +20,28 @@ This document provides architectural and operational context for the `mandala-wo
 
 The project follows a modular structure within the `internal/` directory:
 
-- **`proto/mandala/v1/`**: Contains `.proto` definitions for the `UserService` and potentially other services.
+- **`proto/mandala/v1/`**: Contains `.proto` definitions for the `UserService`, `FolderService`, and `FileService`.
 - **`gen/`**: Contains generated Go code from protobuf definitions.
 - **`internal/crypto/`**: Implements cryptographic primitives:
     - `argon2`: Password hashing and verification.
     - `ed25519`: Signature generation and verification for device authentication.
     - `paseto`: Token creation and validation.
 - **`internal/db/`**: Handles database interactions:
-    - `DBManager`: Manages the SQLite connection and basic CRUD operations.
+    - `DBManager`: Manages the SQLite connection and basic CRUD operations. Includes specific models and queries for users, folders, and files.
     - `sql/InitializeDB.sql`: Defines the database schema (folders, users, devices, files, versions, permissions).
 - **`internal/grpc/`**:
     - `user_service`: Implementation of the `UserService` (CreateUser, RegisterDevice, LoginUser, VerifyLoginSignature).
+    - `folder_service`: Implementation of `FolderService` (CreateFolder, DeleteFolder, ListFolder, MoveFolder).
+    - `file_service`: Implementation of `FileService` (UploadFile, UploadVersion, DownloadFile, ListVersions, etc.).
     - `interceptors`: Contains authentication middleware.
 - **`internal/permission/`**: Defines the permission system:
-    - `PermissionBitMask`: Bitmask definitions for `PermRead`, `PermWrite`, `PermUserCreate`, `PermAdmin`, etc.
-    - `PermissionManager`: Logic for checking and generating permissions based on hierarchy.
+    - `PermissionBitMask`: Bitmask definitions for `PermRead`, `PermWrite`, `PermCreate`, `PermDelete`, `PermAdmin`, etc.
+    - `PermissionManager`: Logic for checking and generating permissions based on path hierarchy.
+- **`internal/storage/`**: Implements the modular Content-Addressable Storage (CAS):
+    - `interface.go`: Defines the `CASProvider` interface (`Store`, `Retrieve`, `Exists`, `Delete`).
+    - `local.go`: Sharded local disk implementation.
+    - `s3.go`: AWS S3-based implementation.
+    - `registry.go`: Routes storage requests based on URI schemes (e.g., `local:///`, `s3:///`).
 - **`internal/types/`**: Domain models (User, Device, Folder, File, Version).
 
 ## Building and Running
@@ -57,7 +64,8 @@ The project includes a `Makefile` for common tasks:
 - **Permission Checks:** All administrative actions (like `CreateUser` or `RegisterDevice`) must be guarded by permission checks using `PermissionManager`.
 
 ## Key Files
-- `proto/mandala/v1/user_service.proto`: API contract.
+- `proto/mandala/v1/user_service.proto`, `folder_service.proto`, `file_service.proto`: API contracts.
 - `internal/db/sql/InitializeDB.sql`: Source of truth for the database schema.
 - `internal/permission/permission_bitmask.go`: Source of truth for available permissions.
-- `internal/grpc/user_service/user_service.go`: Main service implementation logic.
+- `internal/storage/interface.go`: Defines the core CAS capabilities (`Delete`, `Store`, `Retrieve`, etc.).
+- `internal/grpc/`: Contains the main implementations for the gRPC services.

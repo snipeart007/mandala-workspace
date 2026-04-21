@@ -16,7 +16,7 @@ Implement a gRPC-based workspace service that supports hierarchical folder manag
 
 ### Phase 1: Storage Layer (Modular CAS) (Completed)
 1. **Define `internal/storage/interface.go`**:
-   - Create `CASProvider` interface with `Store`, `Retrieve`, `Exists`, and `GetLocationType`.
+   - Create `CASProvider` interface with `Store`, `Retrieve`, `Exists`, `GetLocationType`, and `Delete`.
 2. **Implement `CASRegistry` in `internal/storage/registry.go`**:
    - A central registry that routes requests to the correct implementation based on the `location` column in the database.
 3. **Implement `LocalStorage` in `internal/storage/local.go`**:
@@ -44,7 +44,7 @@ Implement a gRPC-based workspace service that supports hierarchical folder manag
    - Integrated `PermissionManager` for granular access control (`PermCreateFolder`, `PermRead`, `PermMoveFolder`, `PermDeleteFolder`).
    - Implemented inheritance break handling in `CreateFolder`: if `inheritance=false`, creator's effective permissions from the parent are explicitly assigned to the new folder.
 
-### Phase 4: Streaming File Service & Automated Versioning
+### Phase 4: Streaming File Service & Automated Versioning (Completed)
 **Goal:** Implement a memory-efficient, streaming-based file service with automated history and retention.
 
 1.  **Sub-Phase 1: Foundation & Schema Updates**
@@ -64,7 +64,7 @@ Implement a gRPC-based workspace service that supports hierarchical folder manag
 4.  **Sub-Phase 4: Retention Policy Enforcement**
     - Add `SetRetentionPolicy` RPC to update the `version_retention` limit on a folder.
     - Implement post-upload "Pruning" logic: if versions > `N` (where `N > 0`), delete the oldest `versions` records from the database.
-    - Note: Physical storage deletion remains a background GC task to ensure CAS integrity.
+    - Added `Delete` method to `CASProvider` to support future physical storage deletion via background GC tasks.
 
 5.  **Sub-Phase 5: Integration & Stress Testing**
     - Validate with 2GB+ files to ensure stable memory usage (monitored via `pprof`).

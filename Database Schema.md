@@ -30,10 +30,11 @@ Folder:
 4. path - string
    (12.435)
 5. inheritance - boolean
-6. metadata - bytes
-7. merkle_root - bytes
-8. created_at - int64
-9. deleted_at - int64
+6. version_retention - int32
+7. metadata - bytes
+8. merkle_root - bytes
+9. created_at - int64
+10. deleted_at - int64
 
 Permissions:
 1. perm_id - int64

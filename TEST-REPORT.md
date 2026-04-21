@@ -11,7 +11,7 @@ Verify the implementation of a memory-efficient streaming file service with auto
 | `DownloadFile` | PASS | Verified latest version and specific version downloads via streaming. |
 | `Retention Policy` | PASS | Verified that setting `last_n_versions` correctly prunes old version records upon new uploads. |
 | `ModifyFile` (Rename/Move) | PASS | Successfully updated file names and hierarchical paths in the database. |
-| `Streaming Efficiency` | PASS | Verified with 100MB simulation. Memory increase was minimal (< 10MB) despite large total transfer. |
+| `Streaming Efficiency` | PASS | Verified with ~104MB simulation (8MB chunks). Memory increase was minimal (< 10MB) despite large total transfer. |
 
 ## Detailed Functionality Verification
 
@@ -55,8 +55,8 @@ Verify the implementation of a memory-efficient streaming file service with auto
 
 ## Known Issues / Considerations
 ...
-- **Physical Storage Cleanup**: Pruning only removes database records. Physical CAS files are kept (to be handled by a future background GC task).
-- **Concurrent Uploads**: Current logic for `vN` name generation uses `len(versions)+1`, which might collision under extreme race conditions (should use atomic counters or hash-based IDs in production).
+- **Physical Storage Cleanup**: Pruning currently only removes database records. However, the `CASProvider` interface has been updated with a `Delete` method, implemented for `LocalStorage` and `S3Storage`, laying the groundwork for a future background GC task to handle physical file removal.
+- **Concurrent Uploads**: The `vN` name generation logic now robustly parses existing `v%d` strings and increments the maximum found, eliminating collision risks from pruned retention records. Atomic counters or hash-based IDs may still be considered for extreme scale in production.
 
 ## Conclusion
 Phase 4 implementation is stable, efficient, and meets all architectural requirements for handling large files with automated history tracking.
