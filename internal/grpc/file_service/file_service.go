@@ -128,7 +128,12 @@ func (s *FileServiceServer) UploadFile(stream gen.FileService_UploadFileServer) 
 	hashStr := parts[len(parts)-1]
 	hash, _ := hex.DecodeString(hashStr)
 
-	versionID, err := s.dbManager.CreateVersion(fileID, "v1", hash, claims.UserID, nil, "Initial upload")
+	comment := meta.VersionComment
+	if comment == "" {
+		comment = "Initial upload"
+	}
+
+	versionID, err := s.dbManager.CreateVersion(fileID, "v1", hash, claims.UserID, nil, comment)
 	if err != nil {
 		return status.Errorf(codes.Internal, "failed to create version record: %v", err)
 	}

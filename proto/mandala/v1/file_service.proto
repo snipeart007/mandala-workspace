@@ -18,7 +18,8 @@ message UploadFileRequest {
 message UploadMetadata {
   string name = 1;
   uint64 folder_id = 2;
-  bytes metadata = 3; // Optional custom metadata
+  string version_comment = 3; // Comment for the initial version
+  bytes metadata = 4; // Optional custom metadata
 }
 
 message UploadVersionRequest {
