@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS folders (
     name TEXT NOT NULL,
     parent_folder_id INTEGER,
     path TEXT NOT NULL,
+    inheritance BOOLEAN DEFAULT 1,
     metadata BLOB,
     merkle_root BLOB,
     created_at INTEGER NOT NULL,

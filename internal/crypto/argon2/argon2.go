@@ -1,14 +1,15 @@
 package argon2
-
 import (
 	"crypto/rand"
 	"crypto/subtle"
 	"encoding/base64"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"golang.org/x/crypto/argon2"
 )
+
 
 const (
 	// Default parameters for Argon2id
@@ -24,6 +25,7 @@ const (
 func HashPassword(password string) (string, error) {
 	salt := make([]byte, saltLen)
 	if _, err := rand.Read(salt); err != nil {
+		slog.Error("Failed to generate salt for argon2", "error", err)
 		return "", fmt.Errorf("argon2: failed to generate salt: %w", err)
 	}
 
@@ -41,33 +43,40 @@ func HashPassword(password string) (string, error) {
 func VerifyPassword(password, encodedHash string) (bool, error) {
 	parts := strings.Split(encodedHash, "$")
 	if len(parts) != 6 {
+		slog.Warn("Invalid argon2 hash format encountered")
 		return false, fmt.Errorf("argon2: invalid hash format")
 	}
 
 	if parts[1] != "argon2id" {
+		slog.Warn("Incompatible argon2 variant", "variant", parts[1])
 		return false, fmt.Errorf("argon2: incompatible variant: %s", parts[1])
 	}
 
 	var version int
 	if _, err := fmt.Sscanf(parts[2], "v=%d", &version); err != nil {
+		slog.Error("Failed to parse argon2 version", "error", err)
 		return false, fmt.Errorf("argon2: invalid version: %w", err)
 	}
 	if version != argon2.Version {
+		slog.Warn("Incompatible argon2 version", "version", version, "expected", argon2.Version)
 		return false, fmt.Errorf("argon2: incompatible version: %d", version)
 	}
 
 	var m, t, p uint32
 	if _, err := fmt.Sscanf(parts[3], "m=%d,t=%d,p=%d", &m, &t, &p); err != nil {
+		slog.Error("Failed to parse argon2 parameters", "error", err)
 		return false, fmt.Errorf("argon2: invalid parameters: %w", err)
 	}
 
 	salt, err := base64.RawStdEncoding.DecodeString(parts[4])
 	if err != nil {
+		slog.Error("Failed to decode argon2 salt", "error", err)
 		return false, fmt.Errorf("argon2: failed to decode salt: %w", err)
 	}
 
 	hash, err := base64.RawStdEncoding.DecodeString(parts[5])
 	if err != nil {
+		slog.Error("Failed to decode argon2 hash", "error", err)
 		return false, fmt.Errorf("argon2: failed to decode hash: %w", err)
 	}
 

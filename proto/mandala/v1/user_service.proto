@@ -53,6 +53,15 @@ message LoginUserTokenResponse {
   string token = 1;  // PASETO token for subsequent authenticated requests
 }
 
+message RevokeDeviceRequest {
+  uint64 user_id = 1;
+  uint64 device_id = 2;
+}
+
+message RevokeDeviceResponse {
+  bool success = 1;
+}
+
 // UserService provides authentication and user management operations.
 service UserService {
   // CreateUser creates a new user account with the given details.
@@ -60,6 +69,10 @@ service UserService {
 
   // RegisterDevice registers a new device for an existing user, associating a public key.
   rpc RegisterDevice(RegisterDeviceRequest) returns (RegisterDeviceResponse);
+
+  // RevokeDevice revokes a device, preventing it from logging in and invalidating its current session.
+  // Only users with PermAdmin permission can perform this action.
+  rpc RevokeDevice(RevokeDeviceRequest) returns (RevokeDeviceResponse);
 
   // LoginUser initiates the challenge-response authentication flow.
   // It returns a challenge that the client must sign using the device's private key.

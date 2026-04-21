@@ -3,9 +3,11 @@ package interceptors
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"mandala-workspace/internal/crypto/paseto"
+	"mandala-workspace/internal/grpc/session"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -16,7 +18,7 @@ import (
 type contextKey string
 
 const (
-	tokenClaimsContextKey contextKey = "tokenClaims"
+	TokenClaimsContextKey contextKey = "tokenClaims"
 )
 
 // unauthenticatedMethods is a list of gRPC FullMethods that do not require authentication
@@ -27,12 +29,14 @@ var unauthenticatedMethods = []string{
 }
 
 type AuthInterceptor struct {
-	pasetoManager *paseto.Manager
+	pasetoManager  *paseto.Manager
+	sessionManager *session.SessionManager
 }
 
-func NewAuthInterceptor(pasetoManager *paseto.Manager) *AuthInterceptor {
+func NewAuthInterceptor(pasetoManager *paseto.Manager, sessionManager *session.SessionManager) *AuthInterceptor {
 	return &AuthInterceptor{
-		pasetoManager: pasetoManager,
+		pasetoManager:  pasetoManager,
+		sessionManager: sessionManager,
 	}
 }
 
@@ -66,11 +70,13 @@ func (ai *AuthInterceptor) UnaryServerInterceptor(ctx context.Context, req inter
 
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
+		slog.Warn("Incoming gRPC request missing metadata", "method", info.FullMethod)
 		return nil, status.Error(codes.Unauthenticated, "missing metadata")
 	}
 
 	authHeader := md.Get("authorization")
 	if len(authHeader) == 0 {
+		slog.Warn("Incoming gRPC request missing authorization header", "method", info.FullMethod)
 		return nil, status.Error(codes.Unauthenticated, "missing authorization token")
 	}
 
@@ -82,18 +88,25 @@ func (ai *AuthInterceptor) UnaryServerInterceptor(ctx context.Context, req inter
 
 	claims, err := ai.pasetoManager.VerifyToken(token)
 	if err != nil {
+		slog.Warn("PASETO token verification failed", "method", info.FullMethod, "error", err)
 		return nil, status.Errorf(codes.Unauthenticated, "invalid token: %v", err)
 	}
 
+	// Check if the session is active in the cache
+	if !ai.sessionManager.IsSessionActive(claims.UserID, claims.DeviceID) {
+		slog.Warn("Session expired or revoked", "method", info.FullMethod, "user_id", claims.UserID, "device_id", claims.DeviceID)
+		return nil, status.Error(codes.Unauthenticated, "session expired or revoked")
+	}
+
 	// Store claims in context for handlers to access
-	ctx = context.WithValue(ctx, tokenClaimsContextKey, claims)
+	ctx = context.WithValue(ctx, TokenClaimsContextKey, claims)
 
 	return handler(ctx, req)
 }
 
 // GetTokenClaims extracts the token claims from the context
 func GetTokenClaims(ctx context.Context) (paseto.TokenClaims, error) {
-	claims, ok := ctx.Value(tokenClaimsContextKey).(paseto.TokenClaims)
+	claims, ok := ctx.Value(TokenClaimsContextKey).(paseto.TokenClaims)
 	if !ok {
 		return paseto.TokenClaims{}, fmt.Errorf("token claims not found in context")
 	}

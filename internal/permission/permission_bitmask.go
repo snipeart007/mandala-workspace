@@ -13,23 +13,29 @@ const (
 	PermCreate                        // 4 (2^2)
 	PermDelete                        // 8 (2^3)
 	PermRename                        // 16 (2^4)
+)
 
+const (
 	// --- Versioning Control (Bits 8-15) ---
 	PermViewHistory PermissionBitMask = 1 << (8 + iota) // 512
 	PermRestoreVersion                            // 1024
 	PermDeleteVersion                             // 2048
+)
 
+const (
 	// --- Folder & Structural Management (Bits 16-23) ---
 	PermCreateFolder PermissionBitMask = 1 << (16 + iota)
 	PermMoveFolder
 	PermDeleteFolder
+)
 
+const (
 	// --- Governance & Administrative (Bits 24-31) ---
 	PermShare     PermissionBitMask = 1 << (24 + iota)
-	PermUserCreate								// Create Users
-	PermDeviceSetup								// Setup Devices
-	PermAuditView                               // View access logs
-	PermAdmin                                   // Full control override
+	PermUserCreate								// 25
+	PermDeviceSetup								// 26
+	PermAuditView                               // 27
+	PermAdmin     PermissionBitMask = 1 << 31   // 31
 )
 
 // --- Helper Methods ---

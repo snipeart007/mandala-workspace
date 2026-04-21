@@ -1,0 +1,90 @@
+syntax = "proto3";
+
+option go_package = "./gen";
+
+package v1;
+
+// Folder represents a directory in the workspace hierarchy.
+message Folder {
+  uint64 folder_id = 1;      // Unique identifier for the folder.
+  string name = 2;           // Name of the folder.
+  uint64 parent_folder_id = 3; // ID of the parent folder (0 for root).
+  string path = 4;           // Hierarchical path string (e.g., "1/2/").
+  bool inheritance = 5;      // Whether this folder inherits permissions from its parent.
+  bytes metadata = 6;        // Custom metadata associated with the folder.
+  bytes merkle_root = 7;     // Merkle root hash for integrity verification of folder contents.
+  uint64 created_at = 8;     // Unix timestamp (seconds) when the folder was created.
+}
+
+// File represents a content-addressable file stored within a folder.
+message File {
+  uint64 file_id = 1;        // Unique identifier for the file.
+  string name = 2;           // Name of the file.
+  uint64 folder_id = 3;      // ID of the folder containing the file.
+  string path = 4;           // Hierarchical path to the folder.
+  string storage_path = 5;   // Physical storage path or CAS hash.
+  string location = 6;       // Storage provider type (e.g., "local", "s3").
+  uint64 version_id = 7;     // Current active version ID of the file.
+  uint64 created_at = 8;     // Unix timestamp (seconds) when the file was first created.
+  uint64 updated_at = 9;     // Unix timestamp (seconds) when the file was last updated.
+}
+
+// CreateFolderRequest contains parameters for creating a new folder.
+message CreateFolderRequest {
+  string name = 1;           // Name of the new folder.
+  uint64 parent_folder_id = 2; // ID of the parent folder.
+  bool inheritance = 3;      // Whether the new folder should inherit parent permissions.
+  bytes metadata = 4;        // Optional metadata for the new folder.
+}
+
+// CreateFolderResponse returns the newly created folder object.
+message CreateFolderResponse {
+  Folder folder = 1;         // The created folder.
+}
+
+// ListFolderRequest requests the contents of a specific folder.
+message ListFolderRequest {
+  uint64 folder_id = 1;      // ID of the folder to list.
+}
+
+// ListFolderResponse returns subfolders and files within the requested folder.
+message ListFolderResponse {
+  repeated Folder folders = 1; // List of immediate subfolders.
+  repeated File files = 2;     // List of files within the folder.
+}
+
+// MoveFolderRequest contains parameters for moving a folder to a new parent.
+message MoveFolderRequest {
+  uint64 folder_id = 1;           // ID of the folder to move.
+  uint64 new_parent_folder_id = 2; // ID of the target parent folder.
+}
+
+// MoveFolderResponse indicates the success of the move operation.
+message MoveFolderResponse {
+  bool success = 1;          // True if the move was successful.
+}
+
+// DeleteFolderRequest contains the ID of the folder to be soft-deleted.
+message DeleteFolderRequest {
+  uint64 folder_id = 1;      // ID of the folder to delete.
+}
+
+// DeleteFolderResponse indicates the success of the deletion.
+message DeleteFolderResponse {
+  bool success = 1;          // True if the deletion was successful.
+}
+
+// FolderService provides RPCs for managing the hierarchical workspace filesystem.
+service FolderService {
+  // CreateFolder creates a new folder. Requires PermCreateFolder on the parent.
+  rpc CreateFolder(CreateFolderRequest) returns (CreateFolderResponse);
+  
+  // ListFolder lists the contents of a folder. Requires PermRead on the target folder.
+  rpc ListFolder(ListFolderRequest) returns (ListFolderResponse);
+  
+  // MoveFolder moves a folder and its descendants. Requires PermMoveFolder on source and PermCreateFolder on target.
+  rpc MoveFolder(MoveFolderRequest) returns (MoveFolderResponse);
+  
+  // DeleteFolder soft-deletes a folder and its contents. Requires PermDeleteFolder.
+  rpc DeleteFolder(DeleteFolderRequest) returns (DeleteFolderResponse);
+}

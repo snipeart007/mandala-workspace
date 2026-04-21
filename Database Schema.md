@@ -29,10 +29,11 @@ Folder:
 3. parent folder - Folder
 4. path - string
    (12.435)
-5. metadata - bytes
-6. merkle_root - bytes
-7. created_at - int64
-8. deleted_at - int64
+5. inheritance - boolean
+6. metadata - bytes
+7. merkle_root - bytes
+8. created_at - int64
+9. deleted_at - int64
 
 Permissions:
 1. perm_id - int64
@@ -40,7 +41,7 @@ Permissions:
 3. folder_id - int64
 4. metadata - bytes
 NOTE: UNIQUE (user_id, folder_id)
-5. permissions - int
+5. permissions - uint64 (bitmask)
 
 User:
 1. user_id - int64
@@ -57,4 +58,5 @@ Version:
 4. hash - bytes
 5. user - User
 6. metadata - bytes
-7. created_at - int64
+7. version_comment - string
+8. created_at - int64
