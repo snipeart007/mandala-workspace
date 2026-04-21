@@ -259,3 +259,51 @@ func TestAuthInterceptorRevokedSession(t *testing.T) {
 	}
 }
 
+type mockServerStream struct {
+	grpc.ServerStream
+	ctx context.Context
+}
+
+func (m *mockServerStream) Context() context.Context {
+	return m.ctx
+}
+
+func TestAuthInterceptor_StreamInterceptor(t *testing.T) {
+	key := bytes.Repeat([]byte{0x01}, 32)
+	manager, err := paseto.NewManager(key)
+	if err != nil {
+		t.Fatalf("failed to create Paseto manager: %v", err)
+	}
+
+	sessionMgr := session.NewSessionManager()
+	interceptor := NewAuthInterceptor(manager, sessionMgr)
+
+	userID := uint64(123)
+	deviceID := uint64(456)
+	token, err := manager.CreateToken(userID, deviceID)
+	if err != nil {
+		t.Fatalf("failed to create token: %v", err)
+	}
+	sessionMgr.AddSession(userID, deviceID)
+
+	md := metadata.Pairs("authorization", "Bearer "+token)
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+	ss := &mockServerStream{ctx: ctx}
+
+	handler := func(srv interface{}, ss grpc.ServerStream) error {
+		claims, err := GetTokenClaims(ss.Context())
+		if err != nil {
+			return err
+		}
+		if claims.UserID != userID {
+			t.Errorf("expected userID %d, got %d", userID, claims.UserID)
+		}
+		return nil
+	}
+
+	err = interceptor.StreamServerInterceptor(nil, ss, &grpc.StreamServerInfo{FullMethod: "/v1.FileService/UploadFile"}, handler)
+	if err != nil {
+		t.Fatalf("StreamServerInterceptor failed: %v", err)
+	}
+}
+
