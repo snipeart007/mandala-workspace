@@ -133,7 +133,7 @@ func (s *FileServiceServer) UploadFile(stream gen.FileService_UploadFileServer) 
 		comment = "Initial upload"
 	}
 
-	versionID, err := s.dbManager.CreateVersion(fileID, "v1", hash, claims.UserID, nil, comment)
+	versionID, err := s.dbManager.CreateVersion(fileID, "v1", hash, claims.UserID, meta.Metadata, comment)
 	if err != nil {
 		return status.Errorf(codes.Internal, "failed to create version record: %v", err)
 	}
@@ -204,8 +204,21 @@ func (s *FileServiceServer) UploadVersion(stream gen.FileService_UploadVersionSe
 	hash, _ := hex.DecodeString(hashStr)
 
 	// Determine version name (vN)
+	nextVer := 1
 	versions, _ := s.dbManager.ListVersions(file.FileID)
-	versionName := fmt.Sprintf("v%d", len(versions)+1)
+	if len(versions) > 0 {
+		maxVer := 0
+		for _, v := range versions {
+			var verNum int
+			if _, err := fmt.Sscanf(v.Version, "v%d", &verNum); err == nil {
+				if verNum > maxVer {
+					maxVer = verNum
+				}
+			}
+		}
+		nextVer = maxVer + 1
+	}
+	versionName := fmt.Sprintf("v%d", nextVer)
 
 	versionID, err := s.dbManager.CreateVersion(file.FileID, versionName, hash, claims.UserID, meta.Metadata, meta.Comment)
 	if err != nil {

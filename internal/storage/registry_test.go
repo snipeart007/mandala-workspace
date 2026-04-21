@@ -35,6 +35,11 @@ func (m *mockProvider) GetLocationType() string {
 	return m.scheme
 }
 
+func (m *mockProvider) Delete(ctx context.Context, hash string) error {
+	delete(m.stored, hash)
+	return nil
+}
+
 func TestCASRegistry(t *testing.T) {
 	registry := NewCASRegistry()
 	

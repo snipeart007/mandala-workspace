@@ -103,3 +103,12 @@ func (s *LocalStorage) Exists(ctx context.Context, hash string) (bool, error) {
 	_, err := os.Stat(path)
 	return err == nil || !os.IsNotExist(err), nil
 }
+
+func (s *LocalStorage) Delete(ctx context.Context, hash string) error {
+	_, path := s.getPath(hash)
+	err := os.Remove(path)
+	if err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("failed to delete file: %w", err)
+	}
+	return nil
+}

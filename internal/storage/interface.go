@@ -25,4 +25,7 @@ type CASProvider interface {
 
 	// GetLocationType returns the type (e.g., "file", "s3") this provider handles.
 	GetLocationType() string
+
+	// Delete removes the content associated with the hash.
+	Delete(ctx context.Context, hash string) error
 }

@@ -70,6 +70,20 @@ func TestLocalStorage_StoreAndRetrieve(t *testing.T) {
 	if _, err := os.Stat(expectedPath); err != nil {
 		t.Fatalf("file not found at expected sharded path: %v", err)
 	}
+
+	// 5. Delete
+	err = s.Delete(ctx, hash)
+	if err != nil {
+		t.Fatalf("Delete failed: %v", err)
+	}
+
+	exists, err = s.Exists(ctx, hash)
+	if err != nil {
+		t.Fatalf("Exists failed after delete: %v", err)
+	}
+	if exists {
+		t.Fatal("expected file to be deleted")
+	}
 }
 
 func TestLocalStorage_DuplicateStore(t *testing.T) {

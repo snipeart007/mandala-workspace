@@ -113,3 +113,15 @@ func (s *S3Storage) Exists(ctx context.Context, hash string) (bool, error) {
 	}
 	return true, nil
 }
+
+func (s *S3Storage) Delete(ctx context.Context, hash string) error {
+	key := s.getObjectKey(hash)
+	_, err := s.client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: aws.String(s.bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to delete object from s3: %w", err)
+	}
+	return nil
+}

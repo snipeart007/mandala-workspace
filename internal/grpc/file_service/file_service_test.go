@@ -247,6 +247,84 @@ func TestFileService_Integration(t *testing.T) {
 	}
 }
 
+func TestUploadVersion_CorrectNumberAfterPruning(t *testing.T) {
+	server, mgr, userID, _ := setupTestServer(t)
+	defer mgr.Close()
+	ctx := contextWithUser(userID)
+	mgr.SetUserPermission(userID, 1, uint64(permission.PermAdmin|permission.PermCreate|permission.PermWrite|permission.PermViewHistory))
+
+	// 1. Initial Upload (v1)
+	stream := &mockUploadStream{
+		ctx:         ctx,
+		metadataMsg: &gen.UploadFileRequest{Data: &gen.UploadFileRequest_Metadata{Metadata: &gen.UploadMetadata{Name: "test.txt", FolderId: 1}}},
+		chunkSize:   10,
+		numChunks:   1,
+	}
+	sentMetadata := false
+	sentChunk := false
+	stream.recvFunc = func() (*gen.UploadFileRequest, error) {
+		if !sentMetadata {
+			sentMetadata = true
+			return stream.metadataMsg, nil
+		}
+		if !sentChunk {
+			sentChunk = true
+			return &gen.UploadFileRequest{Data: &gen.UploadFileRequest_Chunk{Chunk: []byte("v1 content")}}, nil
+		}
+		return nil, io.EOF
+	}
+	server.UploadFile(stream)
+	fileID := stream.resp.File.FileId
+
+	// 2. Upload v2
+	vStream2 := &mockUploadVersionStream{
+		ctx: ctx,
+		msgs: []*gen.UploadVersionRequest{
+			{Data: &gen.UploadVersionRequest_Metadata{Metadata: &gen.VersionMetadata{FileId: fileID, Comment: "V2"}}},
+			{Data: &gen.UploadVersionRequest_Chunk{Chunk: []byte("v2")}},
+		},
+	}
+	server.UploadVersion(vStream2)
+
+	// 3. Set Retention to 1 and Upload v3 (v1, v2 pruned)
+	mgr.SetRetentionPolicy(1, 1)
+	vStream3 := &mockUploadVersionStream{
+		ctx: ctx,
+		msgs: []*gen.UploadVersionRequest{
+			{Data: &gen.UploadVersionRequest_Metadata{Metadata: &gen.VersionMetadata{FileId: fileID, Comment: "V3"}}},
+			{Data: &gen.UploadVersionRequest_Chunk{Chunk: []byte("v3")}},
+		},
+	}
+	server.UploadVersion(vStream3)
+
+	versions, _ := mgr.ListVersions(fileID)
+	if len(versions) != 1 {
+		t.Fatalf("Expected 1 version, got %d", len(versions))
+	}
+	if versions[0].Version != "v3" {
+		t.Fatalf("Expected latest version to be v3, got %s", versions[0].Version)
+	}
+
+	// 4. Upload next version - should be v4
+	vStream4 := &mockUploadVersionStream{
+		ctx: ctx,
+		msgs: []*gen.UploadVersionRequest{
+			{Data: &gen.UploadVersionRequest_Metadata{Metadata: &gen.VersionMetadata{FileId: fileID, Comment: "V4"}}},
+			{Data: &gen.UploadVersionRequest_Chunk{Chunk: []byte("v4")}},
+		},
+	}
+	err := server.UploadVersion(vStream4)
+	if err != nil {
+		t.Fatalf("V4 upload failed: %v", err)
+	}
+
+	versions, _ = mgr.ListVersions(fileID)
+	// Even with retention=1, after upload we have 1 version (the newest one)
+	if versions[0].Version != "v4" {
+		t.Errorf("Expected version v4, got %s. The logic likely reused v2 because len(versions) was 1.", versions[0].Version)
+	}
+}
+
 func TestFileService_StreamingEfficiency(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping streaming efficiency test in short mode")
@@ -257,9 +335,9 @@ func TestFileService_StreamingEfficiency(t *testing.T) {
 	ctx := contextWithUser(userID)
 	mgr.SetUserPermission(userID, 1, uint64(permission.PermCreate|permission.PermRead))
 
-	// Simulate a 100MB file (enough to verify constant memory)
-	chunkSize := 1024 * 1024 // 1MB
-	numChunks := 100
+	// Simulate a ~100MB file (enough to verify constant memory)
+	chunkSize := 8 * 1024 * 1024 // 8MB
+	numChunks := 13            // ~104MB
 
 	var m1 runtime.MemStats
 	runtime.ReadMemStats(&m1)
