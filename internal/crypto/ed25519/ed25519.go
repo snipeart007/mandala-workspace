@@ -1,4 +1,4 @@
-package crypto
+package ed25519
 
 import (
 	"crypto/ed25519"
@@ -14,12 +14,12 @@ import (
 func VerifySignature(publicKey []byte, message []byte, signature []byte) error {
 	// Validate public key length (ed25519 public keys are 32 bytes)
 	if len(publicKey) != ed25519.PublicKeySize {
-		return fmt.Errorf("crypto: invalid public key length, expected %d bytes, got %d", ed25519.PublicKeySize, len(publicKey))
+		return fmt.Errorf("ed25519: invalid public key length, expected %d bytes, got %d", ed25519.PublicKeySize, len(publicKey))
 	}
 
 	// Validate signature length (ed25519 signatures are 64 bytes)
 	if len(signature) != ed25519.SignatureSize {
-		return fmt.Errorf("crypto: invalid signature length, expected %d bytes, got %d", ed25519.SignatureSize, len(signature))
+		return fmt.Errorf("ed25519: invalid signature length, expected %d bytes, got %d", ed25519.SignatureSize, len(signature))
 	}
 
 	// Convert the public key bytes to an ed25519.PublicKey
@@ -27,7 +27,7 @@ func VerifySignature(publicKey []byte, message []byte, signature []byte) error {
 
 	// Verify the signature using ed25519.Verify
 	if !ed25519.Verify(pubKey, message, signature) {
-		return fmt.Errorf("crypto: signature verification failed")
+		return fmt.Errorf("ed25519: signature verification failed")
 	}
 
 	return nil
@@ -40,7 +40,7 @@ func VerifySignature(publicKey []byte, message []byte, signature []byte) error {
 func GenerateKeyPair() ([]byte, []byte, error) {
 	publicKey, privateKey, err := ed25519.GenerateKey(nil)
 	if err != nil {
-		return nil, nil, fmt.Errorf("crypto: failed to generate ed25519 key pair: %w", err)
+		return nil, nil, fmt.Errorf("ed25519: failed to generate ed25519 key pair: %w", err)
 	}
 
 	return publicKey, privateKey, nil
@@ -53,7 +53,7 @@ func GenerateKeyPair() ([]byte, []byte, error) {
 func SignMessage(privateKey []byte, message []byte) ([]byte, error) {
 	// Validate private key length (ed25519 private keys are 64 bytes)
 	if len(privateKey) != ed25519.PrivateKeySize {
-		return nil, fmt.Errorf("crypto: invalid private key length, expected %d bytes, got %d", ed25519.PrivateKeySize, len(privateKey))
+		return nil, fmt.Errorf("ed25519: invalid private key length, expected %d bytes, got %d", ed25519.PrivateKeySize, len(privateKey))
 	}
 
 	// Create an ed25519.PrivateKey from bytes

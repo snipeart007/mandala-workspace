@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"mandala-workspace/gen"
-	"mandala-workspace/internal/crypto"
+	"mandala-workspace/internal/crypto/ed25519"
 	"mandala-workspace/internal/crypto/paseto"
 	"mandala-workspace/internal/db"
 
@@ -107,7 +107,7 @@ func (s *UserService) VerifyLoginSignature(ctx context.Context, req *gen.LoginUs
 
 	// Step 4: Verify the ed25519 signature
 	// This ensures the signature was created by the holder of the private key corresponding to the public key stored in the database
-	err = crypto.VerifySignature(publicKey, challengeBytes, req.Signature)
+	err = ed25519.VerifySignature(publicKey, challengeBytes, req.Signature)
 	if err != nil {
 		return nil, status.Errorf(codes.Unauthenticated, "signature verification failed: %v", err)
 	}

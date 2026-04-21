@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"mandala-workspace/gen"
-	"mandala-workspace/internal/crypto"
+	"mandala-workspace/internal/crypto/ed25519"
 	"mandala-workspace/internal/crypto/paseto"
 	"mandala-workspace/internal/db"
 
@@ -85,7 +85,7 @@ func newGRPCServerWithDevice(t *testing.T, userID, deviceID uint64, publicKey []
 func TestLoginUserReturnsChallenge(t *testing.T) {
 	userID := uint64(1)
 	deviceID := uint64(2)
-	publicKey, _, err := crypto.GenerateKeyPair()
+	publicKey, _, err := ed25519.GenerateKeyPair()
 	if err != nil {
 		t.Fatalf("failed to generate key pair: %v", err)
 	}
@@ -112,7 +112,7 @@ func TestLoginUserReturnsChallenge(t *testing.T) {
 func TestVerifyLoginSignatureIssuesToken(t *testing.T) {
 	userID := uint64(10)
 	deviceID := uint64(20)
-	publicKey, privateKey, err := crypto.GenerateKeyPair()
+	publicKey, privateKey, err := ed25519.GenerateKeyPair()
 	if err != nil {
 		t.Fatalf("failed to generate key pair: %v", err)
 	}
@@ -133,7 +133,7 @@ func TestVerifyLoginSignatureIssuesToken(t *testing.T) {
 		t.Fatalf("failed to marshal challenge: %v", err)
 	}
 
-	signature, err := crypto.SignMessage(privateKey, challengeBytes)
+	signature, err := ed25519.SignMessage(privateKey, challengeBytes)
 	if err != nil {
 		t.Fatalf("failed to sign challenge: %v", err)
 	}
@@ -156,7 +156,7 @@ func TestVerifyLoginSignatureIssuesToken(t *testing.T) {
 func TestVerifyLoginSignatureInvalidSignature(t *testing.T) {
 	userID := uint64(30)
 	deviceID := uint64(40)
-	publicKey, _, err := crypto.GenerateKeyPair()
+	publicKey, _, err := ed25519.GenerateKeyPair()
 	if err != nil {
 		t.Fatalf("failed to generate key pair: %v", err)
 	}
