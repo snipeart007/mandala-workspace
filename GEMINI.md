@@ -6,7 +6,7 @@ This repository is organized as a monorepo containing two separate software solu
 
 - **`proto/`**: Shared Protobuf definitions for the gRPC API.
 - **`server/`**: The backend gRPC service (Go module `mandala-workspace`).
-- **`client/`**: The client-side implementation (Go module `mandala-workspace/client`).
+- **`client/`**: The desktop client implementation (Go module `mandala-workspace/client`).
 - **`go.work`**: Go workspace configuration managing both components.
 
 ### Shared API & Code Generation
@@ -17,7 +17,7 @@ This repository is organized as a monorepo containing two separate software solu
 
 The server implements a secure file storage and user management service. It uses a challenge-response authentication mechanism for devices and a granular bitmask-based permission system for folder-level access control.
 
-### Main Technologies
+### Main Technologies (Server)
 - **Language:** Go 1.26.2
 - **API Framework:** gRPC with Protobuf
 - **Database:** Modular system supporting SQLite 3 and PostgreSQL.
@@ -25,19 +25,30 @@ The server implements a secure file storage and user management service. It uses
 - **Permissions:** Custom bitmask-based system (`uint64`).
 
 ### Server Architecture
-
-The server code is located in the `server/` directory:
-
-- **`server/proto/mandala/v1/`**: Contains `.proto` definitions.
-- **`server/gen/`**: Contains generated Go code.
+- **`server/gen/`**: Contains generated Go code for the server.
 - **`server/internal/`**: Implements core logic (crypto, db, grpc, permission, storage).
 - **`server/cmd/server/`**: Entry point for the gRPC server.
 
+## Client Overview (`client/`)
+
+The client is a desktop application providing a native file-explorer-like interface for the Mandala Workspace.
+
+### Main Technologies (Client)
+- **Framework:** Wails (v2) with Go backend and React frontend.
+- **Frontend Stack:** React, Material UI, Zustand.
+- **Security:** Password-protected local keyring using Argon2id for KDF and AES-256-GCM for encryption.
+
+### Client Architecture
+- **`client/gen/`**: Contains generated Go code for the client.
+- **`client/frontend/`**: React-based frontend application.
+- **`client/app.go`**: Wails application entry point and bindings.
+
 ## Building and Running
 
-The project includes a root `Makefile` that delegates to component-specific Makefiles:
+The project includes a root `Makefile` that delegates to component-specific tasks:
 
 - **Setup Environment:** `make setup`
+- **Generate All Proto Code:** `make server-proto client-proto`
 - **Run Server Tests:** `make server-test`
 - **Run Server:** `make server-run`
 - **Run All Tests:** `make test`
