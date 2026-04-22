@@ -4,9 +4,14 @@ This repository is organized as a monorepo containing two separate software solu
 
 ## Repository Structure
 
+- **`proto/`**: Shared Protobuf definitions for the gRPC API.
 - **`server/`**: The backend gRPC service (Go module `mandala-workspace`).
 - **`client/`**: The client-side implementation (Go module `mandala-workspace/client`).
 - **`go.work`**: Go workspace configuration managing both components.
+
+### Shared API & Code Generation
+- Proto definitions are centralized in the root `proto/` directory.
+- **Strict Separation:** Each module (Server and Client) is responsible for its own code generation. Generated code is stored within each module's `gen/` directory to avoid cross-module dependency on generated artifacts.
 
 ## Server Overview (`server/`)
 

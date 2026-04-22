@@ -93,8 +93,11 @@ To support opening files seamlessly in their native applications (e.g., PDFs in 
   - **1.1. Project Initialization:** Initialize the Wails v2 project with a React-TS template. Establish the Go project structure (`pkg/`, `internal/`, `app/`).
   - **1.2. Logger & Config Modules:** Implement structured logging and a configuration manager to handle server endpoints and local preferences.
   - **1.3. Sysutils Module:** Implement cross-platform native file opening (`OpenFile`) and system-specific temporary directory resolution.
-  - **1.4. Secure Storage (Auth Module):** Implement a modular system for storing the device's private key and session tokens securely (e.g., via encrypted local storage).
-  - **1.5. gRPC Client Core:** Integrate the generated protobufs and implement a `ConnectionManager` with a PASETO-injecting `AuthInterceptor`.
+  - **1.4. Secure Identity Management (Auth Module):**
+    - Implement a local "Keyring" storage system for the device's private Ed25519 key and PASETO session tokens.
+    - **Encryption Strategy:** All sensitive identity data must be encrypted at rest using a strong symmetric algorithm (e.g., AES-256-GCM). The encryption key is derived from a user-provided master password using a high-cost KDF (Argon2id).
+    - **Security Mandate:** Keys are never stored in plaintext and remain in memory only during an active session. The program must require the master password to unlock the keyring upon startup or after a period of inactivity.
+  - **1.5. gRPC Client Core:** Integrate the shared proto sources from the root `proto/` directory. Generated Go code must be scoped locally to the `client/` module to maintain strict separation from the server's implementation. Implement a `ConnectionManager` with a PASETO-injecting `AuthInterceptor`.
 - **Phase 2: Service Bindings.** Implement the Wails structs wrapping the gRPC methods. Focus heavily on implementing the local-file-to-gRPC-stream translation logic for efficient uploads/downloads.
 - **Phase 3: Frontend Scaffolding.** Setup Vite, React, MUI ThemeProvider, and Zustand stores. Build the initial setup wizard and login flow.
 - **Phase 4: Workspace Explorer.** Build the main file system interface, breadcrumbs, DataGrid, and connect it to the `WorkspaceService`.

@@ -3,7 +3,7 @@
 # Generate Go code from proto files
 proto:
 	@echo "Generating Go code from proto files..."
-	protoc --go_out=. --go-grpc_out=. proto/mandala/v1/*.proto
+	protoc -I.. --go_out=. --go-grpc_out=. ../proto/mandala/v1/*.proto
 	@echo "Proto code generated successfully"
 
 # Install protoc plugins if not present
