@@ -23,6 +23,8 @@ client/bin/
 
 # Dependencies
 vendor/
+package-lock.json
+package.lock
 
 # Environment
 .env
@@ -43,3 +45,4 @@ coverage.out
 # Build artifacts
 dist/
 *.tar.gz
+package.json.md5

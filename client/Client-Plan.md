@@ -98,8 +98,14 @@ To support opening files seamlessly in their native applications (e.g., PDFs in 
     - **Encryption Strategy:** All sensitive identity data must be encrypted at rest using a strong symmetric algorithm (e.g., AES-256-GCM). The encryption key is derived from a user-provided master password using a high-cost KDF (Argon2id).
     - **Security Mandate:** Keys are never stored in plaintext and remain in memory only during an active session. The program must require the master password to unlock the keyring upon startup or after a period of inactivity.
   - **1.5. gRPC Client Core:** Integrate the shared proto sources from the root `proto/` directory. Generated Go code must be scoped locally to the `client/` module to maintain strict separation from the server's implementation. Implement a `ConnectionManager` with a PASETO-injecting `AuthInterceptor`.
-- **Phase 2: Service Bindings.** Implement the Wails structs wrapping the gRPC methods. Focus heavily on implementing the local-file-to-gRPC-stream translation logic for efficient uploads/downloads.
-- **Phase 3: Frontend Scaffolding.** Setup Vite, React, MUI ThemeProvider, and Zustand stores. Build the initial setup wizard and login flow.
+- **Phase 2: Service Bindings.**
+  - **2.1. Authentication Service:** Implement the `AuthService` gRPC wrapper. Handle challenge-response login, initial device registration, and admin setup. Integrate with the `Keyring` for state persistence and signature generation.
+  - **2.2. Workspace & Folder Management:** Implement `WorkspaceService` to handle folder-level operations (`ListFolder`, `CreateFolder`, `MoveFolder`, `DeleteFolder`).
+  - **2.3. Advanced File Operations:** Implement `FileService` for file metadata and versioning.
+  - **2.4. Optimized Streaming Engine:** Implement the core logic for streaming large files between the local filesystem and gRPC endpoints, ensuring high performance and low memory footprint.
+  - **2.5. Admin Service:** Implement administrative functions for user and system management.
+- **Phase 3: Frontend Scaffolding.**
+ Setup Vite, React, MUI ThemeProvider, and Zustand stores. Build the initial setup wizard and login flow.
 - **Phase 4: Workspace Explorer.** Build the main file system interface, breadcrumbs, DataGrid, and connect it to the `WorkspaceService`.
 - **Phase 5: File Operations.** Implement upload, download, and the "Open in External App" execution flow.
 - **Phase 6: Admin & Permissions.** Build the user management and folder permission modification UIs.

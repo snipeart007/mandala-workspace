@@ -1,3 +1,6 @@
 build/bin
 node_modules
 frontend/dist
+package-lock.json
+package.lock
+package.json.md5
