@@ -11,6 +11,7 @@ import (
 
 type DBManagerConfig struct {
 	InitialSchemePath string
+	DBPath            string
 }
 
 type DBManager struct {
@@ -19,8 +20,12 @@ type DBManager struct {
 }
 
 func NewDBManager(config *DBManagerConfig) (*DBManager, error) {
-	slog.Info("Opening SQLite database", "file", "db.sqlite")
-	db, err := sql.Open("sqlite3", "db.sqlite")
+	dbPath := config.DBPath
+	if dbPath == "" {
+		dbPath = "db.sqlite"
+	}
+	slog.Info("Opening SQLite database", "file", dbPath)
+	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
 		slog.Error("Failed to open SQLite database", "error", err)
 		return nil, err
