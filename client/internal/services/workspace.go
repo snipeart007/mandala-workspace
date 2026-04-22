@@ -35,9 +35,9 @@ func (s *WorkspaceService) ListFolder(folderID uint64) (*gen.ListFolderResponse,
 func (s *WorkspaceService) CreateFolder(parentID uint64, name string) (*gen.CreateFolderResponse, error) {
 	logger.Info("Creating folder", "parent_id", parentID, "name", name)
 	resp, err := s.folderClient.CreateFolder(context.Background(), &gen.CreateFolderRequest{
-		ParentId:    parentID,
-		Name:        name,
-		Inheritance: true,
+		ParentFolderId: parentID,
+		Name:           name,
+		Inheritance:    true,
 	})
 	if err != nil {
 		logger.Error("Failed to create folder", "name", name, "error", err)
@@ -50,8 +50,8 @@ func (s *WorkspaceService) CreateFolder(parentID uint64, name string) (*gen.Crea
 func (s *WorkspaceService) MoveFolder(folderID uint64, newParentID uint64) error {
 	logger.Info("Moving folder", "folder_id", folderID, "new_parent_id", newParentID)
 	_, err := s.folderClient.MoveFolder(context.Background(), &gen.MoveFolderRequest{
-		FolderId:    folderID,
-		NewParentId: newParentID,
+		FolderId:          folderID,
+		NewParentFolderId: newParentID,
 	})
 	if err != nil {
 		logger.Error("Failed to move folder", "folder_id", folderID, "error", err)

@@ -20,10 +20,11 @@ The server implements a secure file storage and user management service. It uses
 ### Main Technologies (Server)
 - **Language:** Go 1.26.2
 - **API Framework:** gRPC with Protobuf
-- **Database:** Modular system supporting SQLite 3 and PostgreSQL.
+- **Database:** PostgreSQL (Primary Production). SQLite is deprecated and used only for integration testing.
+- **Caching:** Redis (Hard Dependency for sessions and permissions).
 - **Authentication:** PASETO, Argon2id, Ed25519.
 - **Permissions:** Custom bitmask-based system (`uint64`).
-- **High-Performance Caching:** Uses Redis to cache effective permissions (`eff_perm:{user_id}:{folder_id}`) and an incremental update queue (`perm_updates:{user_id}`) for client synchronization.
+- **High-Performance Caching:** Uses Redis to cache effective permissions with hierarchical versioning (`eff_perm:{user_id}:{folder_id}:{v}`) and an incremental update queue (`perm_updates:{user_id}`).
 
 ## Implementation Roadmap
 Detailed plans for the expansion of the API and the caching system can be found in:
