@@ -62,8 +62,26 @@ message RevokeDeviceResponse {
   bool success = 1;
 }
 
+message SetupAdminRequest {
+  string name = 1;
+  string email = 2;
+  string password = 3;
+  bytes public_key = 4;
+  bytes user_metadata = 5;
+  bytes device_metadata = 6;
+}
+
+message SetupAdminResponse {
+  uint64 user_id = 1;
+  uint64 device_id = 2;
+}
+
 // UserService provides authentication and user management operations.
 service UserService {
+  // SetupAdmin initializes the first administrator user and their device.
+  // This operation is only allowed if no users currently exist in the system.
+  rpc SetupAdmin(SetupAdminRequest) returns (SetupAdminResponse);
+
   // CreateUser creates a new user account with the given details.
   rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
 

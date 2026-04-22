@@ -14,6 +14,55 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// SetupAdmin initializes the first administrator user and their device.
+// This operation is only allowed if no users currently exist in the system.
+func (s *UserService) SetupAdmin(ctx context.Context, req *gen.SetupAdminRequest) (*gen.SetupAdminResponse, error) {
+	slog.Info("SetupAdmin RPC entry", "name", req.Name, "email", req.Email)
+
+	count, err := s.db_manager.GetUserCount()
+	if err != nil {
+		slog.Error("Failed to get user count during SetupAdmin", "error", err)
+		return nil, status.Errorf(codes.Internal, "failed to check system state: %v", err)
+	}
+
+	if count > 0 {
+		slog.Warn("SetupAdmin attempt on already initialized system", "user_count", count)
+		return nil, status.Error(codes.PermissionDenied, "system is already initialized")
+	}
+
+	slog.Debug("Hashing admin password")
+	hashedPassword, err := argon2.HashPassword(req.Password)
+	if err != nil {
+		slog.Error("Failed to hash admin password", "error", err)
+		return nil, status.Errorf(codes.Internal, "failed to hash password: %v", err)
+	}
+
+	slog.Debug("Creating initial admin user in database")
+	userID, _, err := s.db_manager.CreateUser(req.Name, req.Email, []byte(hashedPassword), req.UserMetadata)
+	if err != nil {
+		slog.Error("Failed to create admin user in DB", "error", err)
+		return nil, status.Errorf(codes.Internal, "failed to create user: %v", err)
+	}
+
+	slog.Debug("Registering initial admin device in database", "user_id", userID)
+	deviceID, _, err := s.db_manager.RegisterDevice(userID, req.PublicKey, req.DeviceMetadata)
+	if err != nil {
+		slog.Error("Failed to register admin device in DB", "error", err, "user_id", userID)
+		return nil, status.Errorf(codes.Internal, "failed to register device: %v", err)
+	}
+
+	// Grant Admin permissions on root folder (ID 1)
+	slog.Info("Granting PermAdmin to root user", "user_id", userID)
+	err = s.db_manager.SetUserPermission(userID, 1, uint64(permission.PermAdmin))
+	if err != nil {
+		slog.Error("Failed to grant admin permissions to root user", "error", err, "user_id", userID)
+		return nil, status.Errorf(codes.Internal, "failed to initialize permissions: %v", err)
+	}
+
+	slog.Info("System successfully initialized with admin", "user_id", userID, "device_id", deviceID)
+	return &gen.SetupAdminResponse{UserId: userID, DeviceId: deviceID}, nil
+}
+
 // CreateUser creates a new user account.
 func (s *UserService) CreateUser(ctx context.Context, req *gen.CreateUserRequest) (*gen.CreateUserResponse, error) {
 	slog.Info("CreateUser RPC entry", "name", req.Name, "email", req.Email)

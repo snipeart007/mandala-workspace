@@ -64,8 +64,8 @@ frontend/
 ## 4. UI Components & Pages
 
 ### 4.1. Authentication & Setup
-- **Admin Setup Page (First Run):** A wizard to configure the backend server address, test connectivity, and perform initial device registration.
-- **Login Page:** Simple UI requesting User ID/Email. The heavy lifting (challenge-response signing) happens silently in the Go backend.
+- **Admin Setup Page (First Run):** A wizard to configure the backend server address, test connectivity, and perform initial admin setup via `SetupAdmin`. This flow generates the first admin user, registers the device, and initializes the secure local keyring.
+- **Login Page:** Simple UI requesting User ID/Email. The heavy lifting (challenge-response signing) happens silently in the Go backend using the unlocked keyring.
 
 ### 4.2. Workspace Browser (File System UI)
 - **Layout:** A split-pane layout. A left sidebar for quick access (Root, Recent). A main area for the folder contents.
@@ -90,7 +90,7 @@ To support opening files seamlessly in their native applications (e.g., PDFs in 
 
 ## 6. Implementation Phases
 - **Phase 1: Backend Scaffolding.**
-  - **1.1. Project Initialization:** Initialize the Wails v2 project with a React-TS template. Establish the Go project structure (`pkg/`, `internal/`, `app/`).
+  - **1.1. Project Initialization:** Initialize the Wails v2 project with a React-TS template. Establish the Go project structure (`pkg/`, `internal/`, `app/`). Ensure the `SetupAdmin` RPC is available in the generated gRPC client for the initial configuration.
   - **1.2. Logger & Config Modules:** Implement structured logging and a configuration manager to handle server endpoints and local preferences.
   - **1.3. Sysutils Module:** Implement cross-platform native file opening (`OpenFile`) and system-specific temporary directory resolution.
   - **1.4. Secure Identity Management (Auth Module):**
