@@ -19,7 +19,7 @@ type challengeEntry struct {
 
 type UserService struct {
 	gen.UnimplementedUserServiceServer
-	db_manager         *db.DBManager
+	db_manager         db.DBProvider
 	paseto_manager     *paseto.Manager
 	permission_manager *permission.PermissionManager
 	session_manager    *session.SessionManager
@@ -27,7 +27,7 @@ type UserService struct {
 	challengeCache sync.Map // key: string "userId:deviceId", value: *challengeEntry
 }
 
-func NewUserService(db_manager *db.DBManager, paseto_manager *paseto.Manager, permission_manager *permission.PermissionManager, session_manager *session.SessionManager) *UserService {
+func NewUserService(db_manager db.DBProvider, paseto_manager *paseto.Manager, permission_manager *permission.PermissionManager, session_manager *session.SessionManager) *UserService {
 	slog.Debug("Initializing UserService")
 	return &UserService{
 		db_manager:         db_manager,

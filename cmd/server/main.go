@@ -6,17 +6,21 @@ import (
 	"os/signal"
 	"syscall"
 
+	"mandala-workspace/internal/db"
 	"mandala-workspace/internal/server"
 )
 
 func main() {
 	// For production, these would be loaded from environment variables or a config file.
 	config := &server.ServerInstanceConfig{
-		GRPCAddr:           ":50051",
-		DBPath:             "db.sqlite",
-		InitialSchemePath:  "internal/db/sql/InitializeDB.sql",
-		PasetoSecretKey:    []byte("01234567890123456789012345678901"), // Exactly 32 bytes
-		LocalStoragePath:   "storage_data",
+		GRPCAddr: ":50051",
+		DB: db.DBManagerConfig{
+			DBPath:            "db.sqlite",
+			InitialSchemePath: "internal/db/sql/InitializeDB.sql",
+		},
+		DBType:               "sqlite",
+		PasetoSecretKey:      []byte("01234567890123456789012345678901"), // Exactly 32 bytes
+		LocalStoragePath:     "storage_data",
 		DefaultStorageScheme: "file",
 	}
 

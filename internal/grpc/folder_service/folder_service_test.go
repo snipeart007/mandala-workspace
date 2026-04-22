@@ -4,11 +4,11 @@ package folder_service
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	v1 "mandala-workspace/gen"
 	"mandala-workspace/internal/crypto/paseto"
 	"mandala-workspace/internal/db"
+	"mandala-workspace/internal/db/sqlite"
 	"mandala-workspace/internal/grpc/interceptors"
 	"mandala-workspace/internal/permission"
 	"os"
@@ -18,7 +18,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func NewTestFolderService(t *testing.T) (*FolderService, *db.DBManager, uint64) {
+func NewTestFolderService(t *testing.T) (*FolderService, db.DBProvider, uint64) {
 	tmpDir := t.TempDir()
 	sqlPath := filepath.Join(tmpDir, "init.sql")
 	// Use the real schema
@@ -30,17 +30,14 @@ func NewTestFolderService(t *testing.T) (*FolderService, *db.DBManager, uint64) 
 		t.Fatalf("failed to write schema: %v", err)
 	}
 
-	sqlDB, err := sql.Open("sqlite3", ":memory:")
+	mgr, err := sqlite.NewSQLiteManager(&db.DBManagerConfig{
+		InitialSchemePath: sqlPath,
+		DBPath:            filepath.Join(tmpDir, "db.sqlite"),
+	})
 	if err != nil {
-		t.Fatalf("Failed to open in-memory db: %v", err)
+		t.Fatalf("failed to create DB manager: %v", err)
 	}
 
-	// For in-memory DB, we need to run the schema manually or use Setup
-	// But Setup might have side effects like root folder creation
-	// Let's use Setup
-	mgr := db.NewDBManagerWithDB(sqlDB, &db.DBManagerConfig{
-		InitialSchemePath: sqlPath,
-	})
 	if err := mgr.Setup(); err != nil {
 		t.Fatalf("Setup failed: %v", err)
 	}

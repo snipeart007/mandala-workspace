@@ -1,6 +1,4 @@
-// Package db contains tests for folder-related database operations and hierarchy management.
-// It verifies that folders and files are correctly stored, listed, moved, and soft-deleted.
-package db
+package sqlite
 
 import (
 	"testing"

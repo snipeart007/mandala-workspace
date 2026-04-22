@@ -3,16 +3,16 @@
 package permission
 
 import (
-	"database/sql"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"mandala-workspace/internal/db"
+	"mandala-workspace/internal/db/sqlite"
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func setupTestDB(t *testing.T) (*db.DBManager, uint64, string) {
+func setupTestDB(t *testing.T) (db.DBProvider, uint64, string) {
 	tmpDir := t.TempDir()
 	sqlPath := filepath.Join(tmpDir, "init.sql")
 	// Navigate up to find the schema
@@ -22,8 +22,13 @@ func setupTestDB(t *testing.T) (*db.DBManager, uint64, string) {
 	}
 	os.WriteFile(sqlPath, schema, 0644)
 
-	sqlDB, _ := sql.Open("sqlite3", ":memory:")
-	mgr := db.NewDBManagerWithDB(sqlDB, &db.DBManagerConfig{InitialSchemePath: sqlPath})
+	mgr, err := sqlite.NewSQLiteManager(&db.DBManagerConfig{
+		InitialSchemePath: sqlPath,
+		DBPath:            filepath.Join(tmpDir, "db.sqlite"),
+	})
+	if err != nil {
+		t.Fatalf("failed to create DB manager: %v", err)
+	}
 	mgr.Setup()
 
 	userID, _, err := mgr.CreateUser("test", "test@example.com", []byte("hash"), nil)

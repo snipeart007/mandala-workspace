@@ -11,11 +11,11 @@ import (
 
 type FolderService struct {
 	v1.UnimplementedFolderServiceServer
-	dbManager         *db.DBManager
+	dbManager         db.DBProvider
 	permissionManager *permission.PermissionManager
 }
 
-func NewFolderService(dbManager *db.DBManager, permissionManager *permission.PermissionManager) *FolderService {
+func NewFolderService(dbManager db.DBProvider, permissionManager *permission.PermissionManager) *FolderService {
 	slog.Debug("Initializing FolderService")
 	return &FolderService{
 		dbManager:         dbManager,

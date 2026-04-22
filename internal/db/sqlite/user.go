@@ -1,5 +1,4 @@
-// Package db provides user-related database operations including user creation, device registration, and key retrieval.
-package db
+package sqlite
 
 import (
 	"database/sql"
@@ -8,12 +7,8 @@ import (
 	"time"
 )
 
-// GetDevicePublicKey retrieves the public key for a device
-// userID: the user ID
-// deviceID: the device ID
-// Returns: the public key bytes, or error if device not found or revoked
-func (self *DBManager) GetDevicePublicKey(userID uint64, deviceID uint64) ([]byte, error) {
-	slog.Debug("Fetching device public key", "user_id", userID, "device_id", deviceID)
+func (self *SQLiteManager) GetDevicePublicKey(userID uint64, deviceID uint64) ([]byte, error) {
+	slog.Debug("Fetching device public key", "user_id", userID, "device_id", deviceID, "db_type", "sqlite")
 	var publicKey []byte
 	
 	err := self.db.QueryRow(
@@ -34,10 +29,10 @@ func (self *DBManager) GetDevicePublicKey(userID uint64, deviceID uint64) ([]byt
 	return publicKey, nil
 }
 
-func (self *DBManager) CreateUser(name string, email string, passwordHash []byte, metadata []byte) (uint64, uint64, error) {
+func (self *SQLiteManager) CreateUser(name string, email string, passwordHash []byte, metadata []byte) (uint64, uint64, error) {
 	createdAt := uint64(time.Now().Unix())
 	
-	slog.Info("Creating user", "name", name, "email", email)
+	slog.Info("Creating user", "name", name, "email", email, "db_type", "sqlite")
 	result, err := self.db.Exec(
 		"INSERT INTO users (name, email, password_hash, metadata, created_at) VALUES (?, ?, ?, ?, ?)",
 		name, email, passwordHash, metadata, createdAt,
@@ -57,8 +52,8 @@ func (self *DBManager) CreateUser(name string, email string, passwordHash []byte
 	return uint64(id), createdAt, nil
 }
 
-func (self *DBManager) GetUserCount() (int, error) {
-	slog.Debug("Getting user count")
+func (self *SQLiteManager) GetUserCount() (int, error) {
+	slog.Debug("Getting user count", "db_type", "sqlite")
 	var count int
 	err := self.db.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
 	if err != nil {
@@ -68,10 +63,10 @@ func (self *DBManager) GetUserCount() (int, error) {
 	return count, nil
 }
 
-func (self *DBManager) RegisterDevice(userID uint64, publicKey []byte, metadata []byte) (uint64, uint64, error) {
+func (self *SQLiteManager) RegisterDevice(userID uint64, publicKey []byte, metadata []byte) (uint64, uint64, error) {
 	createdAt := uint64(time.Now().Unix())
 
-	slog.Info("Registering device", "user_id", userID)
+	slog.Info("Registering device", "user_id", userID, "db_type", "sqlite")
 	result, err := self.db.Exec(
 		"INSERT INTO devices (user_id, public_key, metadata, created_at) VALUES (?, ?, ?, ?)",
 		userID, publicKey, metadata, createdAt,
@@ -91,9 +86,9 @@ func (self *DBManager) RegisterDevice(userID uint64, publicKey []byte, metadata 
 	return uint64(id), createdAt, nil
 }
 
-func (self *DBManager) RevokeDevice(userID uint64, deviceID uint64) error {
+func (self *SQLiteManager) RevokeDevice(userID uint64, deviceID uint64) error {
 	revokedAt := uint64(time.Now().Unix())
-	slog.Info("Revoking device", "user_id", userID, "device_id", deviceID)
+	slog.Info("Revoking device", "user_id", userID, "device_id", deviceID, "db_type", "sqlite")
 	_, err := self.db.Exec(
 		"UPDATE devices SET revoked_at = ? WHERE user_id = ? AND device_id = ? AND revoked_at IS NULL",
 		revokedAt, userID, deviceID,

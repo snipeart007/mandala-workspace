@@ -1,5 +1,4 @@
-// Package db provides permission-related database operations including bitmask retrieval and effective permission calculation.
-package db
+package postgres
 
 import (
 	"database/sql"
@@ -8,11 +7,11 @@ import (
 	"strings"
 )
 
-func (self *DBManager) GetUserPermissionBitmask(userID uint64, folderID uint64) (uint64, error) {
-	slog.Debug("Getting user permission bitmask", "user_id", userID, "folder_id", folderID)
+func (self *PostgresManager) GetUserPermissionBitmask(userID uint64, folderID uint64) (uint64, error) {
+	slog.Debug("Getting user permission bitmask", "user_id", userID, "folder_id", folderID, "db_type", "postgres")
 	var permissions uint64
 	err := self.db.QueryRow(
-		"SELECT permissions FROM permissions WHERE user_id = ? AND folder_id = ?",
+		"SELECT permissions FROM permissions WHERE user_id = $1 AND folder_id = $2",
 		userID, folderID,
 	).Scan(&permissions)
 	
@@ -29,12 +28,12 @@ func (self *DBManager) GetUserPermissionBitmask(userID uint64, folderID uint64) 
 }
 
 // GetUserEffectivePermissions implements path-based prefix search with inheritance break logic.
-func (self *DBManager) GetUserEffectivePermissions(userID uint64, folderID uint64) (uint64, error) {
-	slog.Debug("Calculating effective permissions", "user_id", userID, "folder_id", folderID)
+func (self *PostgresManager) GetUserEffectivePermissions(userID uint64, folderID uint64) (uint64, error) {
+	slog.Debug("Calculating effective permissions", "user_id", userID, "folder_id", folderID, "db_type", "postgres")
 	// 1. Get the target folder's path and inheritance bit
 	var path string
 	var inheritance bool
-	err := self.db.QueryRow("SELECT path, inheritance FROM folders WHERE folder_id = ?", folderID).Scan(&path, &inheritance)
+	err := self.db.QueryRow("SELECT path, inheritance FROM folders WHERE folder_id = $1", folderID).Scan(&path, &inheritance)
 	if err != nil {
 		slog.Error("Failed to fetch folder path for effective permissions", "folder_id", folderID, "error", err)
 		return 0, fmt.Errorf("failed to fetch folder path: %w", err)
@@ -56,12 +55,14 @@ func (self *DBManager) GetUserEffectivePermissions(userID uint64, folderID uint6
 
 	// 3. Fetch inheritance status and permissions for all folders in the chain
 	// We use a query to get everything in one go for performance
-	placeholders := strings.Repeat("?,", len(folderIDs))
-	placeholders = placeholders[:len(placeholders)-1]
+	placeholders := make([]string, len(folderIDs))
+	for i := range placeholders {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+	}
 
 	// Fetch inheritance for the chain
 	inheritanceMap := make(map[uint64]bool)
-	rows, err := self.db.Query(fmt.Sprintf("SELECT folder_id, inheritance FROM folders WHERE folder_id IN (%s) AND deleted_at IS NULL", placeholders), folderIDs...)
+	rows, err := self.db.Query(fmt.Sprintf("SELECT folder_id, inheritance FROM folders WHERE folder_id IN (%s) AND deleted_at IS NULL", strings.Join(placeholders, ",")), folderIDs...)
 	if err != nil {
 		slog.Error("Failed to fetch inheritance chain", "error", err)
 		return 0, fmt.Errorf("failed to fetch inheritance chain: %w", err)
@@ -82,8 +83,13 @@ func (self *DBManager) GetUserEffectivePermissions(userID uint64, folderID uint6
 	}
 
 	// Fetch explicit permissions for this user in the chain
+	permPlaceholders := make([]string, len(folderIDs))
+	for i := range permPlaceholders {
+		permPlaceholders[i] = fmt.Sprintf("$%d", i+2)
+	}
+	
 	permissionMap := make(map[uint64]uint64)
-	rows, err = self.db.Query(fmt.Sprintf("SELECT folder_id, permissions FROM permissions WHERE user_id = ? AND folder_id IN (%s)", placeholders), append([]interface{}{userID}, folderIDs...)...)
+	rows, err = self.db.Query(fmt.Sprintf("SELECT folder_id, permissions FROM permissions WHERE user_id = $1 AND folder_id IN (%s)", strings.Join(permPlaceholders, ",")), append([]interface{}{userID}, folderIDs...)...)
 	if err != nil {
 		slog.Error("Failed to fetch permissions chain", "user_id", userID, "error", err)
 		return 0, fmt.Errorf("failed to fetch permissions chain: %w", err)
@@ -138,12 +144,12 @@ func (self *DBManager) GetUserEffectivePermissions(userID uint64, folderID uint6
 	return effectivePerm, nil
 }
 
-func (self *DBManager) SetUserPermission(userID uint64, folderID uint64, permissions uint64) error {
-	slog.Info("Setting user permission", "user_id", userID, "folder_id", folderID, "permissions", permissions)
+func (self *PostgresManager) SetUserPermission(userID uint64, folderID uint64, permissions uint64) error {
+	slog.Info("Setting user permission", "user_id", userID, "folder_id", folderID, "permissions", permissions, "db_type", "postgres")
 	_, err := self.db.Exec(`
 		INSERT INTO permissions (user_id, folder_id, permissions)
-		VALUES (?, ?, ?)
-		ON CONFLICT(user_id, folder_id) DO UPDATE SET permissions = excluded.permissions
+		VALUES ($1, $2, $3)
+		ON CONFLICT(user_id, folder_id) DO UPDATE SET permissions = EXCLUDED.permissions
 	`, userID, folderID, permissions)
 	if err != nil {
 		slog.Error("Failed to set user permission", "user_id", userID, "folder_id", folderID, "error", err)

@@ -9,6 +9,8 @@ import (
 	"mandala-workspace/gen"
 	"mandala-workspace/internal/crypto/paseto"
 	"mandala-workspace/internal/db"
+	"mandala-workspace/internal/db/postgres"
+	"mandala-workspace/internal/db/sqlite"
 	"mandala-workspace/internal/grpc/file_service"
 	"mandala-workspace/internal/grpc/folder_service"
 	"mandala-workspace/internal/grpc/interceptors"
@@ -22,11 +24,11 @@ import (
 
 // ServerInstanceConfig holds all configuration and secrets for the mandala server.
 type ServerInstanceConfig struct {
-	GRPCAddr           string
-	DBPath             string
-	InitialSchemePath  string
-	PasetoSecretKey    []byte
-	LocalStoragePath   string
+	GRPCAddr             string
+	DB                   db.DBManagerConfig
+	DBType               string // "sqlite" or "postgres"
+	PasetoSecretKey      []byte
+	LocalStoragePath     string
 	DefaultStorageScheme string
 }
 
@@ -34,7 +36,7 @@ type ServerInstanceConfig struct {
 type ServerInstance struct {
 	config            *ServerInstanceConfig
 	grpcServer        *grpc.Server
-	dbManager         *db.DBManager
+	dbProvider        db.DBProvider
 	pasetoManager     *paseto.Manager
 	sessionManager    *session.SessionManager
 	permissionManager *permission.PermissionManager
@@ -50,13 +52,19 @@ type ServerInstance struct {
 func NewServerInstance(config *ServerInstanceConfig) (*ServerInstance, error) {
 	slog.Info("Initializing ServerInstance", "addr", config.GRPCAddr)
 
-	// 1. Initialize DBManager
-	dbManager, err := db.NewDBManager(&db.DBManagerConfig{
-		InitialSchemePath: config.InitialSchemePath,
-		DBPath:            config.DBPath,
-	})
+	// 1. Initialize DBProvider
+	var dbProvider db.DBProvider
+	var err error
+	switch config.DBType {
+	case "postgres":
+		dbProvider, err = postgres.NewPostgresManager(&config.DB)
+	case "sqlite", "":
+		dbProvider, err = sqlite.NewSQLiteManager(&config.DB)
+	default:
+		return nil, fmt.Errorf("unsupported database type: %s", config.DBType)
+	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to initialize DBManager: %w", err)
+		return nil, fmt.Errorf("failed to initialize DBProvider: %w", err)
 	}
 
 	// 2. Initialize Crypto and Auth components
@@ -67,7 +75,7 @@ func NewServerInstance(config *ServerInstanceConfig) (*ServerInstance, error) {
 	sessionManager := session.NewSessionManager()
 
 	// 3. Initialize Permission Manager
-	permissionManager := permission.NewPermissionManager(dbManager)
+	permissionManager := permission.NewPermissionManager(dbProvider)
 
 	// 4. Initialize Storage
 	storageRegistry := storage.NewCASRegistry()
@@ -79,9 +87,9 @@ func NewServerInstance(config *ServerInstanceConfig) (*ServerInstance, error) {
 
 	// 5. Initialize Services
 	slog.Debug("Initializing gRPC service implementations")
-	userService := user_service.NewUserService(dbManager, pasetoManager, permissionManager, sessionManager)
-	folderService := folder_service.NewFolderService(dbManager, permissionManager)
-	fileService := file_service.NewFileServiceServer(dbManager, storageRegistry, permissionManager, config.DefaultStorageScheme)
+	userService := user_service.NewUserService(dbProvider, pasetoManager, permissionManager, sessionManager)
+	folderService := folder_service.NewFolderService(dbProvider, permissionManager)
+	fileService := file_service.NewFileServiceServer(dbProvider, storageRegistry, permissionManager, config.DefaultStorageScheme)
 
 	// 6. Setup Auth Interceptor
 	slog.Debug("Setting up authentication interceptor")
@@ -105,7 +113,7 @@ func NewServerInstance(config *ServerInstanceConfig) (*ServerInstance, error) {
 	return &ServerInstance{
 		config:            config,
 		grpcServer:        grpcServer,
-		dbManager:         dbManager,
+		dbProvider:        dbProvider,
 		pasetoManager:     pasetoManager,
 		sessionManager:    sessionManager,
 		permissionManager: permissionManager,
@@ -121,7 +129,7 @@ func (s *ServerInstance) Start() error {
 	slog.Info("Starting server", "addr", s.config.GRPCAddr)
 
 	// Setup database schema if needed
-	if err := s.dbManager.Setup(); err != nil {
+	if err := s.dbProvider.Setup(); err != nil {
 		return fmt.Errorf("failed to setup database: %w", err)
 	}
 
@@ -144,12 +152,12 @@ func (s *ServerInstance) Start() error {
 func (s *ServerInstance) Stop() {
 	slog.Info("Stopping server")
 	s.grpcServer.GracefulStop()
-	s.dbManager.Close()
+	s.dbProvider.Close()
 }
 
-// GetDBManager returns the underlying DBManager.
-func (s *ServerInstance) GetDBManager() *db.DBManager {
-	return s.dbManager
+// GetDBProvider returns the underlying DBProvider.
+func (s *ServerInstance) GetDBProvider() db.DBProvider {
+	return s.dbProvider
 }
 
 // GetPasetoManager returns the PASETO manager.

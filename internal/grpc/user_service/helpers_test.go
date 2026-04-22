@@ -11,6 +11,7 @@ import (
 
 	"mandala-workspace/internal/crypto/paseto"
 	"mandala-workspace/internal/db"
+	"mandala-workspace/internal/db/sqlite"
 	"mandala-workspace/internal/grpc/session"
 	"mandala-workspace/internal/permission"
 
@@ -35,7 +36,7 @@ func newGRPCServerWithDevice(t *testing.T, userID, deviceID uint64, publicKey []
 		t.Fatalf("failed to chdir to temp dir: %v", err)
 	}
 
-	mgr, err := db.NewDBManager(&db.DBManagerConfig{
+	mgr, err := sqlite.NewSQLiteManager(&db.DBManagerConfig{
 		InitialSchemePath: schemaPath,
 	})
 	if err != nil {

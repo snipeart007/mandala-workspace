@@ -1,6 +1,4 @@
-// Package db contains unit tests for the core DBManager functionality, including database setup and schema initialization.
-// It also tests low-level operations like retrieving device public keys and calculating effective permissions.
-package db
+package sqlite
 
 import (
 	"database/sql"
@@ -9,18 +7,19 @@ import (
 	"testing"
 
 	_ "github.com/mattn/go-sqlite3"
+	"mandala-workspace/internal/db"
 )
 
 // Helper to create a manager using an in-memory database
-func NewTestManager(t *testing.T, schemaPath string) *DBManager {
-	db, err := sql.Open("sqlite3", ":memory:")
+func NewTestManager(t *testing.T, schemaPath string) *SQLiteManager {
+	sqlDB, err := sql.Open("sqlite3", ":memory:")
 	if err != nil {
 		t.Fatalf("Failed to open in-memory db: %v", err)
 	}
 
-	return &DBManager{
-		db: db,
-		config: &DBManagerConfig{
+	return &SQLiteManager{
+		db: sqlDB,
+		config: &db.DBManagerConfig{
 			InitialSchemePath: schemaPath,
 		},
 	}

@@ -4,7 +4,6 @@ package file_service
 
 import (
 	"context"
-	"database/sql"
 	"io"
 	"os"
 	"path/filepath"
@@ -13,6 +12,7 @@ import (
 	"mandala-workspace/gen"
 	"mandala-workspace/internal/crypto/paseto"
 	"mandala-workspace/internal/db"
+	"mandala-workspace/internal/db/sqlite"
 	"mandala-workspace/internal/grpc/interceptors"
 	"mandala-workspace/internal/permission"
 	"mandala-workspace/internal/storage"
@@ -20,14 +20,19 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-func setupTestServer(t *testing.T) (*FileServiceServer, *db.DBManager, uint64, string) {
+func setupTestServer(t *testing.T) (*FileServiceServer, db.DBProvider, uint64, string) {
 	tmpDir := t.TempDir()
 	sqlPath := filepath.Join(tmpDir, "init.sql")
 	schema, _ := os.ReadFile("../../db/sql/InitializeDB.sql")
 	os.WriteFile(sqlPath, schema, 0644)
 
-	sqlDB, _ := sql.Open("sqlite3", ":memory:")
-	mgr := db.NewDBManagerWithDB(sqlDB, &db.DBManagerConfig{InitialSchemePath: sqlPath})
+	mgr, err := sqlite.NewSQLiteManager(&db.DBManagerConfig{
+		InitialSchemePath: sqlPath,
+		DBPath:            filepath.Join(tmpDir, "db.sqlite"),
+	})
+	if err != nil {
+		t.Fatalf("failed to create DB manager: %v", err)
+	}
 	mgr.Setup()
 
 	userID, _, _ := mgr.CreateUser("testuser", "test@example.com", []byte("hash"), nil)

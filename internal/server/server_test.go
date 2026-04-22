@@ -1,6 +1,7 @@
 package server
 
 import (
+	"mandala-workspace/internal/db"
 	"os"
 	"path/filepath"
 	"testing"
@@ -23,11 +24,14 @@ func TestNewServerInstance(t *testing.T) {
 	}
 
 	validConfig := &ServerInstanceConfig{
-		GRPCAddr:           ":0", // Random port
-		DBPath:             filepath.Join(tmpDir, "test.db"),
-		InitialSchemePath:  schemaPath,
-		PasetoSecretKey:    []byte("01234567890123456789012345678901"), // 32 bytes
-		LocalStoragePath:   filepath.Join(tmpDir, "storage"),
+		GRPCAddr: ":0", // Random port
+		DB: db.DBManagerConfig{
+			InitialSchemePath: schemaPath,
+			DBPath:            filepath.Join(tmpDir, "test.db"),
+		},
+		DBType:               "sqlite",
+		PasetoSecretKey:      []byte("01234567890123456789012345678901"), // 32 bytes
+		LocalStoragePath:     filepath.Join(tmpDir, "storage"),
 		DefaultStorageScheme: "file",
 	}
 
@@ -41,8 +45,8 @@ func TestNewServerInstance(t *testing.T) {
 		}
 
 		// Check if helper methods return the correct components
-		if instance.GetDBManager() == nil {
-			t.Error("expected DBManager to be initialized")
+		if instance.GetDBProvider() == nil {
+			t.Error("expected DBProvider to be initialized")
 		}
 		if instance.GetPasetoManager() == nil {
 			t.Error("expected PasetoManager to be initialized")
@@ -82,11 +86,14 @@ func TestServerLifecycle(t *testing.T) {
 	realSchemaPath := "../../internal/db/sql/InitializeDB.sql"
 
 	config := &ServerInstanceConfig{
-		GRPCAddr:           "localhost:0", // Random port
-		DBPath:             filepath.Join(tmpDir, "lifecycle.db"),
-		InitialSchemePath:  realSchemaPath,
-		PasetoSecretKey:    []byte("01234567890123456789012345678901"),
-		LocalStoragePath:   filepath.Join(tmpDir, "storage"),
+		GRPCAddr: "localhost:0", // Random port
+		DB: db.DBManagerConfig{
+			InitialSchemePath: realSchemaPath,
+			DBPath:            filepath.Join(tmpDir, "lifecycle.db"),
+		},
+		DBType:               "sqlite",
+		PasetoSecretKey:      []byte("01234567890123456789012345678901"),
+		LocalStoragePath:     filepath.Join(tmpDir, "storage"),
 		DefaultStorageScheme: "file",
 	}
 

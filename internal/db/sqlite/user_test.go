@@ -1,6 +1,4 @@
-// Package db contains tests for user-related database operations.
-// It verifies the persistence and retrieval of user and device data in the SQLite database.
-package db
+package sqlite
 
 import (
 	"database/sql"
@@ -9,30 +7,27 @@ import (
 	"testing"
 
 	_ "github.com/mattn/go-sqlite3"
+	"mandala-workspace/internal/db"
 )
-
-func setupUserTestDB(t *testing.T) (*DBManager, string) {
-	tmpDir := t.TempDir()
-	sqlPath := filepath.Join(tmpDir, "init.sql")
-	schema, _ := os.ReadFile("sql/InitializeDB.sql")
-	os.WriteFile(sqlPath, schema, 0644)
-
-	sqlDB, _ := sql.Open("sqlite3", ":memory:")
-	mgr := NewDBManagerWithDB(sqlDB, &DBManagerConfig{InitialSchemePath: sqlPath})
-	mgr.Setup()
-
-	return mgr, tmpDir
-}
 
 func TestUserDeviceLifecycle(t *testing.T) {
 	tmpDir := t.TempDir()
 	sqlPath := filepath.Join(tmpDir, "init.sql")
-	schema, _ := os.ReadFile("sql/InitializeDB.sql")
+	schema, err := os.ReadFile("../sql/InitializeDB.sql")
+	if err != nil {
+		t.Fatalf("failed to read schema: %v", err)
+	}
 	os.WriteFile(sqlPath, schema, 0644)
 
-	sqlDB, _ := sql.Open("sqlite3", ":memory:")
-	mgr := NewDBManagerWithDB(sqlDB, &DBManagerConfig{InitialSchemePath: sqlPath})
-	mgr.Setup()
+	sqlDB, err := sql.Open("sqlite3", ":memory:")
+	if err != nil {
+		t.Fatalf("failed to open db: %v", err)
+	}
+	mgr := &SQLiteManager{db: sqlDB, config: &db.DBManagerConfig{InitialSchemePath: sqlPath}}
+	err = mgr.Setup()
+	if err != nil {
+		t.Fatalf("failed to setup db: %v", err)
+	}
 	defer mgr.Close()
 
 	// 1. Create User

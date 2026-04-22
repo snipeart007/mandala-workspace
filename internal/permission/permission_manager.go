@@ -8,10 +8,10 @@ import (
 )
 
 type PermissionManager struct {
-	db_manager *db.DBManager
+	db_manager db.DBProvider
 }
 
-func NewPermissionManager(db_manager *db.DBManager) *PermissionManager {
+func NewPermissionManager(db_manager db.DBProvider) *PermissionManager {
 	return &PermissionManager{db_manager}
 }
 

@@ -14,13 +14,13 @@ import (
 
 type FileServiceServer struct {
 	gen.UnimplementedFileServiceServer
-	dbManager         *db.DBManager
+	dbManager         db.DBProvider
 	storageRegistry   *storage.CASRegistry
 	permissionManager *permission.PermissionManager
 	defaultScheme     string
 }
 
-func NewFileServiceServer(dbManager *db.DBManager, storageRegistry *storage.CASRegistry, permissionManager *permission.PermissionManager, defaultScheme string) *FileServiceServer {
+func NewFileServiceServer(dbManager db.DBProvider, storageRegistry *storage.CASRegistry, permissionManager *permission.PermissionManager, defaultScheme string) *FileServiceServer {
 	slog.Info("Initializing FileServiceServer", "default_scheme", defaultScheme)
 	return &FileServiceServer{
 		dbManager:         dbManager,
