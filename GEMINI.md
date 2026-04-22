@@ -42,6 +42,7 @@ The project follows a modular structure within the `internal/` directory:
     - `local.go`: Sharded local disk implementation.
     - `s3.go`: AWS S3-based implementation.
     - `registry.go`: Routes storage requests based on URI schemes (e.g., `local:///`, `s3:///`).
+- **`internal/server/`**: Core server lifecycle management (`NewServerInstance`, `Start`, `Stop`).
 - **`internal/types/`**: Domain models (User, Device, Folder, File, Version).
 
 ## Building and Running
@@ -52,7 +53,7 @@ The project includes a `Makefile` for common tasks:
 - **Setup Environment:** `make setup` (installs tools, downloads deps, and generates proto)
 - **Generate Proto Code:** `make proto`
 - **Run Tests:** `make test`
-- **Run Server:** `make run` (Note: Currently references `cmd/server/main.go`, which may need to be created or updated).
+- **Run Server:** `make run` (Starts the gRPC server using `cmd/server/main.go`).
 - **Build Binary:** `make build`
 
 ## Development Conventions
@@ -64,8 +65,11 @@ The project includes a `Makefile` for common tasks:
 - **Permission Checks:** All administrative actions (like `CreateUser` or `RegisterDevice`) must be guarded by permission checks using `PermissionManager`.
 
 ## Key Files
-- `proto/mandala/v1/user_service.proto`, `folder_service.proto`, `file_service.proto`: API contracts.
+- `proto/mandala/v1/*.proto`: API contracts.
 - `internal/db/sql/InitializeDB.sql`: Source of truth for the database schema.
 - `internal/permission/permission_bitmask.go`: Source of truth for available permissions.
 - `internal/storage/interface.go`: Defines the core CAS capabilities (`Delete`, `Store`, `Retrieve`, etc.).
 - `internal/grpc/`: Contains the main implementations for the gRPC services.
+- `cmd/server/main.go`: Entry point for the gRPC server.
+- `TEST-REPORT.md`: Summary of latest test results and verified functionality.
+- `Gemini-Plan.md`: Detailed roadmap and implementation plan.
