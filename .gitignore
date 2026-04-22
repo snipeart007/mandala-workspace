@@ -1,5 +1,7 @@
 # Binaries
-/bin/
+bin/
+server/bin/
+client/bin/
 *.exe
 *.dll
 *.so
@@ -8,8 +10,8 @@
 *.o
 
 # Generated files
-/gen/**/*.pb.go
-/gen/**/*_grpc.pb.go
+**/gen/**/*.pb.go
+**/gen/**/*_grpc.pb.go
 
 # IDE
 .vscode/
@@ -27,8 +29,10 @@ vendor/
 .env.local
 
 # Data
-./data/
-/storage_data/
+data/
+server/data/
+client/data/
+storage_data/
 *.db
 *.sqlite
 
