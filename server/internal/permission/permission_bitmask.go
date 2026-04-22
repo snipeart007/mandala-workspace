@@ -33,11 +33,12 @@ const (
 
 const (
 	// --- Governance & Administrative (Bits 24-31) ---
-	PermShare     PermissionBitMask = 1 << (24 + iota)
-	PermUserCreate								// 25
-	PermDeviceSetup								// 26
-	PermAuditView                               // 27
-	PermAdmin     PermissionBitMask = 1 << 31   // 31
+	PermShare          PermissionBitMask = 1 << (24 + iota)
+	PermUserCreate                                  // 25
+	PermDeviceSetup                                 // 26
+	PermAuditView                                   // 27
+	PermSetPermissions                              // 28
+	PermAdmin          PermissionBitMask = 1 << 31  // 31
 )
 
 // --- Helper Methods ---

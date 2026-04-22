@@ -23,6 +23,12 @@ The server implements a secure file storage and user management service. It uses
 - **Database:** Modular system supporting SQLite 3 and PostgreSQL.
 - **Authentication:** PASETO, Argon2id, Ed25519.
 - **Permissions:** Custom bitmask-based system (`uint64`).
+- **High-Performance Caching:** Uses Redis to cache effective permissions (`eff_perm:{user_id}:{folder_id}`) and an incremental update queue (`perm_updates:{user_id}`) for client synchronization.
+
+## Implementation Roadmap
+Detailed plans for the expansion of the API and the caching system can be found in:
+- `server/Gemini-Plan-Extension-1.md`: Detailed RPC and logic definitions.
+- `server/Gemini-Plan-Chronology.md`: Granular phase-by-phase implementation roadmap.
 
 ### Server Architecture
 - **`server/gen/`**: Contains generated Go code for the server.
