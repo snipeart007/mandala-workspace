@@ -28,6 +28,26 @@ This repository is structured as a monorepo consisting of two principal software
 
 ---
 
+## 🔌 Plug-and-Play Modular Architecture
+
+The codebase is engineered with strict abstractions, allowing core components to be swapped out dynamically without rewrites:
+
+### 1. Storage Backend Layer (`CASProvider`)
+File storage runs through a Content-Addressable Storage (CAS) router. File locations are saved in the database as locator URIs (e.g., `s3:///<hash>` or `file:///<hash>`).
+*   **The Interface**: Any storage backend implementing [`CASProvider`](file:///home/snipeart007/repos/mandala-workspace/server/internal/storage/interface.go) can be plugged into the system.
+*   **Dynamic Routing**: The [`CASRegistry`](file:///home/snipeart007/repos/mandala-workspace/server/internal/storage/registry.go) acts as a router, parsing the locator URI's scheme and dispatching requests to the corresponding provider (e.g. [`s3.go`](file:///home/snipeart007/repos/mandala-workspace/server/internal/storage/s3.go) or [`local.go`](file:///home/snipeart007/repos/mandala-workspace/server/internal/storage/local.go)). Adding support for Google Cloud Storage or Azure Blob is as simple as registering a new provider class.
+
+### 2. Database Provider Layer (`DBProvider`)
+Metadata transactions, user management, and permissions queries are decoupled from the business service logic:
+*   **The Interface**: gRPC services operate solely on the [`DBProvider`](file:///home/snipeart007/repos/mandala-workspace/server/internal/db/interface.go) interface.
+*   **Plug-and-Play Engines**: Switching between PostgreSQL (for production scales) and SQLite (for isolated integration tests) is done at instantiation time during startup, with zero modifications needed inside the gRPC service logic.
+
+### 3. API Contract Isolation
+*   **Contract-first Architecture**: Frontend and backend are completely decoupled by protocol buffer boundaries in [`proto/`](file:///home/snipeart007/repos/mandala-workspace/proto).
+*   **Frontend-Agnostic bindings**: The desktop client uses Wails service adapters to separate React state management from the underlying gRPC network logic.
+
+---
+
 ## 🔑 Core Features & Cryptographic Architecture
 
 ### 1. Challenge-Response Authentication & PASETO Sessions
